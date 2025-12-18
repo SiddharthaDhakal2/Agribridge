@@ -13,6 +13,28 @@ class _HomeScreenState extends State<HomeScreen> {
   
   final List<String> categories = ['All', 'Fruits', 'Grains', 'Vegetables',];
   int selectedIndex = 0;
+  final List<Map<String, String>> products = [
+    {
+      'name': 'Apple',
+      'price': 'Rs 250/Kg',
+      'image': 'assets/images/apple.jpg',
+    },
+    {
+      'name': 'Orange',
+      'price': 'Rs 150/Kg',
+      'image': 'assets/images/orange.jpg',
+    },
+    {
+      'name': 'Rice',
+      'price': 'Rs 100/Kg',
+      'image': 'assets/images/rice.jpg',
+    },
+    {
+      'name': 'Lemon',
+      'price': 'Rs 50/Kg',
+      'image': 'assets/images/lemon.jpg',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.grey.shade100,
                 padding: const EdgeInsets.all(16),
                 child: GridView.builder(
-                  itemCount: 2,
+                  itemCount: products.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
@@ -105,19 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     childAspectRatio: 0.68,
                   ),
                   itemBuilder: (context, index) {
-                    final products = [
-                      {
-                        'name': 'Apple',
-                        'price': 'Rs 250/Kg',
-                        'image': 'assets/images/apple.jpg',
-                      },
-                      {
-                        'name': 'Orange',
-                        'price': 'Rs 150/Kg',
-                        'image': 'assets/images/orange.jpg',
-                      },
-                    ];
-
                     final product = products[index];
 
                     return Container(
