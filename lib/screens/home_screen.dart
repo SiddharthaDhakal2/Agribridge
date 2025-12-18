@@ -1,48 +1,67 @@
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    const greenColor = Color(0xFF0F6E2D);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AgriBridge'),
-        backgroundColor: const Color(0xFF0F6E2D),
-        centerTitle: true,
+        backgroundColor: greenColor,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 24),
-            Image.asset(
-              'assets/images/agri_logo.png',
-              width: 120,
-              height: 120,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Welcome to AgriBridge',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1F3A4D),
+
+      body: Stack(
+        children: [
+          Container(color: greenColor),
+
+          Column(
+            children: [
+              const SizedBox(height: 70), 
+              Expanded(
+                child: Container(
+                  color: Colors.grey.shade100,
+                  child: const Center(
+                    child: Text(
+                      'Home Screen',
+                      style: TextStyle(fontSize: 20, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          Positioned(
+            top: 0, 
+            left: 16,
+            right: 16,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  prefixIcon: Icon(Icons.search, color: greenColor),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'You have successfully logged in!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
