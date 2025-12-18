@@ -1,6 +1,7 @@
+import 'package:agribridge/screens/button_navigation.dart';
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
-import 'home_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -168,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     onPressed: () {
                       Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                        MaterialPageRoute(builder: (_) => const ButtonNavigation()),
                       );
                     },
                     child: const Text('Log In', style: TextStyle(fontSize: 16, color: Colors.white70, fontWeight: FontWeight.w600)),
