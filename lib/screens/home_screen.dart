@@ -93,18 +93,121 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               Expanded(
-                child: Container(
-                  color: Colors.grey.shade100,
-                  child: Center(
-                    child: Text(
-                      'Home Screen',
-                      style: TextStyle(fontSize: 20, color: Colors.black87),
-                    ),
+              child: Container(
+                color: Colors.grey.shade100,
+                padding: const EdgeInsets.all(16),
+                child: GridView.builder(
+                  itemCount: 2,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.68,
                   ),
+                  itemBuilder: (context, index) {
+                    final products = [
+                      {
+                        'name': 'Apple',
+                        'price': 'Rs 250/Kg',
+                        'image': 'assets/images/apple.jpg',
+                      },
+                      {
+                        'name': 'Orange',
+                        'price': 'Rs 150/Kg',
+                        'image': 'assets/images/orange.jpg',
+                      },
+                    ];
+
+                    final product = products[index];
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 1,
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                              child: Image.asset(
+                                product['image']!,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product['name']!,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        product['price']!,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height: 36,
+                                  width: 36,
+                                  decoration: const BoxDecoration(
+                                    color: null,
+                                  ),
+                                  child: Material(
+                                    color: greenColor,
+                                    shape: const CircleBorder(),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {},
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
 
           Positioned(
             top: 0,
@@ -123,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              child: const TextField(
+              child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search products...',
                   prefixIcon: Icon(Icons.search, color: greenColor),
