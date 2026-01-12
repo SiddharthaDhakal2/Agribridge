@@ -1,4 +1,4 @@
-import 'package:agribridge/screens/button_navigation.dart';
+import 'package:agribridge/features/dashboard/presentation/pages/button_navigation.dart';
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 

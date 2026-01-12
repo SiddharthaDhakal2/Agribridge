@@ -1,5 +1,5 @@
 //import 'package:agribridge/screens/login_screen.dart';
-import 'package:agribridge/screens/splash_screen.dart';
+import 'package:agribridge/features/splash/presentation/pages/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 
