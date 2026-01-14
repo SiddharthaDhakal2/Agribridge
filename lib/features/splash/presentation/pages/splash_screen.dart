@@ -1,6 +1,6 @@
 import 'package:agribridge/features/onboarding/presentation/pages/onboarding_one.dart';
 import 'package:flutter/material.dart';
-//import '../../../../screens/onboarding_one.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

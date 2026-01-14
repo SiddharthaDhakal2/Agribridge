@@ -1,5 +1,5 @@
+import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:flutter/material.dart';
-import '../../../auth/presentation/pages/login_screen.dart';
 
 class OnboardingThree extends StatelessWidget {
   const OnboardingThree({super.key});
