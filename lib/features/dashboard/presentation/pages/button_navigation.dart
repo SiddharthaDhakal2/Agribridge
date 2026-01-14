@@ -6,7 +6,7 @@ import 'order_screen.dart';
 import 'profile_screen.dart';
 
 class ButtonNavigation extends StatefulWidget {
-  const ButtonNavigation({Key? key}) : super(key: key);
+  const ButtonNavigation({super.key});
 
   @override
   State<ButtonNavigation> createState() => _ButtonNavigationState();
