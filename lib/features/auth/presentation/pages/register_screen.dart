@@ -275,7 +275,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             : _handleSignup,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 14, horizontal: 140),
+                              vertical: 14, horizontal: 125),
                           backgroundColor: Colors.blueAccent,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),

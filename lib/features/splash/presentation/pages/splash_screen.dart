@@ -1,6 +1,6 @@
 import 'package:agribridge/app/routes/app_routes.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
-import 'package:agribridge/features/dashboard/presentation/pages/home_screen.dart';
+import 'package:agribridge/features/dashboard/presentation/pages/button_navigation.dart';
 import 'package:agribridge/features/onboarding/presentation/pages/onboarding_one.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,7 +24,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       final isLoggedIn = userSessionService.isLoggedIn();
 
       if (isLoggedIn) {
-        AppRoutes.pushReplacement(context, const HomeScreen());
+        AppRoutes.pushReplacement(context, const ButtonNavigation());
       } else {
         AppRoutes.pushReplacement(context, const OnboardingOne());
       }

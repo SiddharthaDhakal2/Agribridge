@@ -4,7 +4,7 @@ class AuthApiModel{
   final String? id;
   final String fullName;
   final String email;
-  final String? phoneNumber;
+  //final String? phoneNumber;
   final String username;
   final String? password;
   final String? profilePicture; 
@@ -13,7 +13,7 @@ class AuthApiModel{
     this.id,
     required this.fullName,
     required this.email,
-    this.phoneNumber, 
+    //this.phoneNumber, 
     required this.username,
     this.password,
     this.profilePicture,
@@ -21,7 +21,7 @@ class AuthApiModel{
 
   Map<String, dynamic> toJson(){
     return{
-      "fullName": fullName,
+      "name": fullName,
       "email":email,
       //"phoneNumber":phoneNumber,
       "username":username,
