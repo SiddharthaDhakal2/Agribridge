@@ -1,9 +1,9 @@
+import 'package:agribridge/features/auth/data/datasources/auth_datasource.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agribridge/core/error/failures.dart';
-import 'package:agribridge/features/auth/data/datasources/auth_datasource.dart';
-import 'package:agribridge/features/auth/data/datasources/local/auth_local_datasource.dart';
-import 'package:agribridge/features/auth/data/models/auth_hive_model.dart';
+import 'package:agribridge/features/auth/data/datasources/remote/auth_remote_datasource.dart';
+import 'package:agribridge/features/auth/data/models/auth_api_model.dart';
 import 'package:agribridge/features/auth/domain/entities/auth_entity.dart';
 import 'package:agribridge/features/auth/domain/repositories/auth_repository.dart';
 
@@ -11,25 +11,21 @@ import 'package:agribridge/features/auth/domain/repositories/auth_repository.dar
 //provider
 
 final authRepositoryProvider = Provider<IAuthRepository>((ref){
-  return AuthRepository(authDatasouce: ref.read(authLocalDatasourceProvider));
+  return AuthRepository(remoteDatasouce: ref.read(authRemoteDatasourceProvider));
 });
 class AuthRepository implements IAuthRepository{
 
-final IAuthDatasource _authDatasource;
+final IAuthRemoteDataSource _remoteDatasouce;
 
-AuthRepository({required IAuthDatasource authDatasouce})
-:_authDatasource = authDatasouce;
+AuthRepository({required IAuthRemoteDataSource remoteDatasouce})
+:_remoteDatasouce = remoteDatasouce;
 
 
   @override
   Future<Either<Failure, AuthEntity>> getCurrentUser() async{
     try{
-      final user = await _authDatasource.getCurrentUser();
-      if(user!=null){
-        final entity = user.toEntity();
-        return Right(entity);
-      }
-      return Left(LocalDatabaseFailure(message: 'No user logged in'));
+      // This would require API implementation or local storage
+      return Left(LocalDatabaseFailure(message: 'Not implemented'));
     }catch(e){
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
@@ -38,13 +34,13 @@ AuthRepository({required IAuthDatasource authDatasouce})
   @override
   Future<Either<Failure, AuthEntity>> login(String email, String password) async{
    try{
-    final user = await _authDatasource.login(email, password);
+    final user = await _remoteDatasouce.login(email, password);
     if(user != null){
       final entity = user.toEntity();
       return Right(entity);
     }
     return Left(LocalDatabaseFailure(message: 'Invalid email or password'));
-   }catch(e){
+   }on Exception catch(e){
     return Left(LocalDatabaseFailure(message: e.toString()));
    }
   }
@@ -52,11 +48,8 @@ AuthRepository({required IAuthDatasource authDatasouce})
   @override
   Future<Either<Failure, bool>> logout()async {
     try{
-      final result = await _authDatasource.logout();
-      if(result){
-        return Right(true);
-      }
-      return Left(LocalDatabaseFailure(message: 'Failed to logout user'));
+      // TODO: Implement logout in remote datasource if needed
+      return Right(true);
     }catch(e){
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
@@ -65,14 +58,11 @@ AuthRepository({required IAuthDatasource authDatasouce})
   @override
   Future<Either<Failure, bool>> register(AuthEntity entity)async {
     try{
-      //model ma convert gara
-        final model = AuthHiveModel.fromEntiity(entity);
-        final result = await _authDatasource.register(model);
-        if(result){
-          return Right(true);
-        }
-        return Left(LocalDatabaseFailure(message: 'Failed to register user'));
-    }catch(e){
+      // Convert entity to API model for registration
+      final model = AuthApiModel.fromEntity(entity);
+      await _remoteDatasouce.register(model);
+      return Right(true);
+    }on Exception catch(e){
       return Left(LocalDatabaseFailure(message: e.toString()));
     }
   }

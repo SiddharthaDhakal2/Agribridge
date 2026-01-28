@@ -56,20 +56,25 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         final decodedToken = JwtDecoder.decode(token);
         final userId = decodedToken['id'] as String;
 
-        // Fetch full user data from backend
-        final userResponse = await getUserById(userId);
-        if (userResponse != null) {
-          // Update session locally
-          await _userSessionService.saveUserSession(
-            userId: userResponse.id!,
-            email: userResponse.email,
-            fullName: userResponse.fullName,
-            username: userResponse.username,
-            profilePicture: userResponse.profilePicture ?? '',
-          );
+        // Create a user model from the token data
+        final user = AuthApiModel(
+          id: userId,
+          fullName: email.split('@').first,
+          email: email,
+          username: email.split('@').first,
+          profilePicture: '',
+        );
 
-          return userResponse;
-        }
+        // Update session locally
+        await _userSessionService.saveUserSession(
+          userId: user.id!,
+          email: user.email,
+          fullName: user.fullName,
+          username: user.username,
+          profilePicture: user.profilePicture ?? '',
+        );
+
+        return user;
       }
     }
 
@@ -93,7 +98,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         userId: registeredUser.id!,
         email: registeredUser.email,
         fullName: registeredUser.fullName,
-        username: registeredUser.username,
+        username: registeredUser.email.split('@').first, // Generate username from email
         profilePicture: registeredUser.profilePicture ?? '',
       );
 

@@ -22,23 +22,20 @@ class AuthApiModel{
   Map<String, dynamic> toJson(){
     return{
       "name": fullName,
-      "email":email,
-      //"phoneNumber":phoneNumber,
-      "username":username,
-      "password":password,
-      "profilePicture":profilePicture
+      "email": email,
+      "password": password,
     };
   }
 
   factory AuthApiModel.fromJson(Map<String,dynamic> json){
+    final email = json['email'] as String;
     return AuthApiModel(
-      id: json['_id']as String,
+      id: json['_id'] as String?,
       fullName: json['name'] as String,
-      email: json['email'] as String,
-      //phoneNumber: json['phoneNumber'] as String?,
-      username: json['username'] as String,
+      email: email,
+      username: email.split('@').first, // Generate username from email
       profilePicture: json['profilePicture'] as String?,
-      );
+    );
   }
 
   AuthEntity toEntity(){
