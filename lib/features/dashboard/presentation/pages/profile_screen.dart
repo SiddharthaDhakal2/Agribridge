@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -12,14 +15,142 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _profileImage;
+
+  // permission
+  Future<bool> _requestPermission(Permission permission) async {
+    final status = await permission.request();
+
+    if (status.isGranted) return true;
+
+    if (status.isPermanentlyDenied) {
+      _showPermissionDeniedDialog();
+    }
+    return false;
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Permission Required"),
+        content: const Text(
+          "This feature requires permission to access your camera or gallery. "
+          "Please enable it in your device settings.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            child: const Text("Open Settings"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // image picker
+  Future<void> _pickFromCamera() async {
+    if (!await _requestPermission(Permission.camera)) return;
+
+    final XFile? photo = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+    );
+
+    if (photo != null) {
+      setState(() {
+        _profileImage = File(photo.path);
+      });
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    if (!await _requestPermission(Permission.photos)) return;
+
+    final XFile? image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (image != null) {
+      setState(() {
+        _profileImage = File(image.path);
+      });
+    }
+  }
+
+  // Future<void> _pickVideo() async {
+  //   if (!await _requestPermission(Permission.camera)) return;
+
+  //   final XFile? video = await _imagePicker.pickVideo(
+  //     source: ImageSource.camera,
+  //     maxDuration: const Duration(minutes: 1),
+  //   );
+
+  //   if (video != null) {
+  //     setState(() {
+  //       _profileImage = File(video.path);
+  //     });
+  //   }
+  // }
+
+  // bottom sheet
+  void _showMediaPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickFromCamera();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo),
+              title: const Text("Gallery"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickFromGallery();
+              },
+            ),
+            // ListTile(
+            //   leading: const Icon(Icons.videocam),
+            //   title: const Text("Video"),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     _pickVideo();
+            //   },
+            // ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // UI 
   @override
   Widget build(BuildContext context) {
     final userSessionService = ref.watch(userSessionServiceProvider);
-    final userName = userSessionService.getCurrentUserFullName() ?? 'User';
-    final userEmail = userSessionService.getCurrentUserEmail() ?? '';
-
-    //print('PROFILE SCREEN LOADED');
-    userSessionService.debugPrintUserData();
+    final userName =
+        userSessionService.getCurrentUserFullName() ?? 'User';
+    final userEmail =
+        userSessionService.getCurrentUserEmail() ?? '';
 
     return Scaffold(
       body: SafeArea(
@@ -35,7 +166,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(32),
                     bottomRight: Radius.circular(32),
                   ),
@@ -43,7 +174,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 15),
-                    Text(
+                    const Text(
                       'My Profile',
                       style: TextStyle(
                         fontSize: 20,
@@ -53,14 +184,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Profile Picture
+                    // profile image
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 4,
-                        ),
+                        border: Border.all(color: Colors.white, width: 4),
                         boxShadow: const [
                           BoxShadow(
                             color: Colors.black26,
@@ -74,24 +202,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.white,
-                            child: Text(
-                              userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
+                            backgroundImage: _profileImage != null
+                                ? FileImage(_profileImage!)
+                                : null,
+                            child: _profileImage == null
+                                ? Text(
+                                    userName.isNotEmpty
+                                        ? userName[0].toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 48,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  )
+                                : null,
                           ),
                           Positioned(
                             bottom: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Edit profile picture')),
-                                );
-                              },
+                              onTap: _showMediaPicker,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
@@ -113,34 +244,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
 
+                    const SizedBox(height: 16),
                     Text(
                       userName,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       userEmail,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
 
-              // Menu Items
+              // Menu
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
                     _MenuItem(
@@ -178,20 +308,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: 'Logout',
                       iconColor: Colors.red,
                       titleColor: Colors.red,
-                      onTap: () {
-                        _showLogoutDialog(context);
-                      },
+                      onTap: () => _showLogoutDialog(context),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-        ) )
+        ),
+      ),
     );
   }
 
-  
+  // Logout
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -199,36 +328,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: Text(
+        title: const Text(
           'Logout',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: Text('Are you sure you want to logout?'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              // Clear user session
               ref.read(authViewModelProvider.notifier).logout();
               if (context.mounted) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(),
+                  ),
+                );
               }
             },
-            child: Text(
+            child: const Text(
               'Logout',
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -237,6 +362,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
+// Menu Item
 class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -265,7 +391,7 @@ class _MenuItem extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
@@ -292,7 +418,7 @@ class _MenuItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 16,
                   color: Colors.lightGreen,
