@@ -79,4 +79,14 @@ class UserSessionService {
     await _prefs.remove(_keyUserFullName);
     await _secureStorage.delete(key: _keyToken);
   }
+
+  // Debug: Print all saved user data
+  void debugPrintUserData() {
+    print('USER SESSION DATA');
+    print('IsLoggedIn: ${isLoggedIn()}');
+    print('UserId: ${getCurrentUserId()}');
+    print('Email: ${getCurrentUserEmail()}');
+    print('FullName: ${getCurrentUserFullName()}');
+//     print('========================');
+  }
 }

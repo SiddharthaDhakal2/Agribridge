@@ -2,7 +2,7 @@ class HiveTableConstant{
   HiveTableConstant._();
 
   //Database name
-  static const String dbName = 'lost_n_found_db';
+  static const String dbName = 'agribridge_db';
 
   static const int batchTypeID = 0;
   static const String batchTable = 'batch_table';

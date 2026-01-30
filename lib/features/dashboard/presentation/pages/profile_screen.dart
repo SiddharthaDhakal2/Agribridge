@@ -18,6 +18,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userName = userSessionService.getCurrentUserFullName() ?? 'User';
     final userEmail = userSessionService.getCurrentUserEmail() ?? '';
 
+    print('PROFILE SCREEN LOADED');
+    userSessionService.debugPrintUserData();
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -88,6 +91,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -96,6 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         fontSize: 14,
                         color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),

@@ -119,21 +119,33 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    // List of public endpoints
+    // List of public endpoints (only signup and login are public)
     const publicEndpoints = {
-      ApiEndpoints.customers,
       ApiEndpoints.customerLogin,
       ApiEndpoints.customerRegister,
     };
 
-    // Skip adding token for public endpoints
-    final skipAuth = publicEndpoints.any((endpoint) => options.path.contains(endpoint));
+    // Check if this is a POST to signup or POST to login
+    final isPublic = publicEndpoints.any((endpoint) => 
+      options.path.contains(endpoint) && 
+      (options.method == 'POST')
+    );
 
-    if (!skipAuth) {
-      final token = await _userSessionService.getToken();
-      if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
+    // Skip adding token only for public endpoints
+    if (!isPublic) {
+      try {
+        final token = await _userSessionService.getToken();
+        if (token != null) {
+          print('Adding Bearer token to request: ${options.path}');
+          options.headers['Authorization'] = 'Bearer $token';
+        } else {
+          print('No token found for request: ${options.path}');
+        }
+      } catch (e) {
+        print('Error getting token: $e');
       }
+    } else {
+      print('Skipping auth for public endpoint: ${options.path}');
     }
 
     handler.next(options);

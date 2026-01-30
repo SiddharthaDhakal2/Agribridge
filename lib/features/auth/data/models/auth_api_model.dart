@@ -29,11 +29,15 @@ class AuthApiModel{
 
   factory AuthApiModel.fromJson(Map<String,dynamic> json){
     final email = json['email'] as String;
+    final name = json['name'] as String? ?? '';
+    
+    final finalName = name.isNotEmpty ? name : email.split('@').first;
+    
     return AuthApiModel(
       id: json['_id'] as String?,
-      fullName: json['name'] as String,
+      fullName: finalName,
       email: email,
-      username: email.split('@').first, // Generate username from email
+      username: email.split('@').first,
       profilePicture: json['profilePicture'] as String?,
     );
   }

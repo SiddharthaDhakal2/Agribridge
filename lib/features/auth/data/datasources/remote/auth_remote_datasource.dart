@@ -26,56 +26,87 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
   @override
   Future<AuthApiModel?> getUserById(String authId) async {
-    // Fetch user by ID from backend
-    final response = await _apiClient.get("${ApiEndpoints.customers}/$authId");
-    if (response.data['success'] == true) {
-      final data = response.data['data'] as Map<String, dynamic>;
-      return AuthApiModel.fromJson(data);
+    try {
+      final url = "${ApiEndpoints.customers}/$authId";
+      print('Calling: GET $url');
+      final response = await _apiClient.get(url);
+      
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        print('User data: $data');
+        final user = AuthApiModel.fromJson(data);
+        print('Parsed user: id=${user.id}, name="${user.fullName}", email=${user.email}');
+        return user;
+      } else {
+        print('Invalid response: statusCode=${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getUserById: $e');
     }
     return null;
   }
 
   @override
   Future<AuthApiModel?> login(String email, String password) async {
-    // Call backend login endpoint
-    final response = await _apiClient.post(
-      ApiEndpoints.customerLogin,
-      data: {
-        'email': email,
-        'password': password,
-      },
-    );
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.customerLogin,
+        data: {
+          'email': email,
+          'password': password,
+        },
+      );
 
-    if (response.data['success'] == true) {
-      final token = response.data['token'] as String?;
-      if (token != null) {
-        // Save JWT token
-        await _userSessionService.saveToken(token);
+      print('LOGIN RESPONSE: Status=${response.statusCode}, Success=${response.data['success']}');
 
-        // Decode token to get user ID
-        final decodedToken = JwtDecoder.decode(token);
-        final userId = decodedToken['id'] as String;
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final token = response.data['token'] as String?;
+        if (token != null) {
+          // Save JWT token
+          await _userSessionService.saveToken(token);
+          print('Token saved');
 
-        // Create a user model from the token data
-        final user = AuthApiModel(
-          id: userId,
-          fullName: email.split('@').first,
-          email: email,
-          username: email.split('@').first,
-          profilePicture: '',
-        );
+          // Decode token to get user ID
+          final decodedToken = JwtDecoder.decode(token);
+          final userId = decodedToken['id'] as String;
+          print('Decoded userId: $userId');
 
-        // Update session locally
-        await _userSessionService.saveUserSession(
-          userId: user.id!,
-          email: user.email,
-          fullName: user.fullName,
-          username: user.username,
-          profilePicture: user.profilePicture ?? '',
-        );
+          // Try to fetch the full user data from backend
+          try {
+            print('Calling getUserById($userId)...');
+            final user = await getUserById(userId);
+            
+            if (user != null) {
+              print('getUserById returned: name="${user.fullName}"');
+              // Update session with actual user data
+              await _userSessionService.saveUserSession(
+                userId: user.id!,
+                email: user.email,
+                fullName: user.fullName,
+                username: user.username,
+                profilePicture: user.profilePicture ?? '',
+              );
+              print('Saved to session');
+              _userSessionService.debugPrintUserData();
 
-        return user;
+              return user;
+            } else {
+              print('getUserById returned null');
+            }
+          } catch (e) {
+            print('Error in getUserById: $e');
+          }
+
+          return null;
+        }
+      } else {
+        print('Login failed: ${response.data['message']}');
       }
+    } catch (e) {
+      print('Login exception: $e');
     }
 
     return null;
@@ -83,28 +114,32 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
   @override
   Future<AuthApiModel> register(AuthApiModel user) async {
-    // Call backend register endpoint
-    final response = await _apiClient.post(
-      ApiEndpoints.customerRegister,
-      data: user.toJson(),
-    );
-
-    if (response.data['success'] == true) {
-      final data = response.data['data'] as Map<String, dynamic>;
-      final registeredUser = AuthApiModel.fromJson(data);
-
-      // Save user data locally for session
-      await _userSessionService.saveUserSession(
-        userId: registeredUser.id!,
-        email: registeredUser.email,
-        fullName: registeredUser.fullName,
-        username: registeredUser.email.split('@').first, // Generate username from email
-        profilePicture: registeredUser.profilePicture ?? '',
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.customerRegister,
+        data: user.toJson(),
       );
 
-      return registeredUser;
-    } else {
-      throw Exception(response.data['message'] ?? 'Registration failed');
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        final registeredUser = AuthApiModel.fromJson(data);
+
+        // Save user data locally for session
+        await _userSessionService.saveUserSession(
+          userId: registeredUser.id!,
+          email: registeredUser.email,
+          fullName: registeredUser.fullName,
+          username: registeredUser.username,
+          profilePicture: registeredUser.profilePicture ?? '',
+        );
+
+        return registeredUser;
+      } else {
+        throw Exception(response.data['message'] ?? 'Registration failed');
+      }
+    } catch (e) {
+      print('Register error: $e');
+      rethrow;
     }
   }
 }
