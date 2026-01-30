@@ -18,7 +18,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userName = userSessionService.getCurrentUserFullName() ?? 'User';
     final userEmail = userSessionService.getCurrentUserEmail() ?? '';
 
-    print('PROFILE SCREEN LOADED');
+    //print('PROFILE SCREEN LOADED');
     userSessionService.debugPrintUserData();
 
     return Scaffold(
@@ -69,17 +69,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ],
                       ),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.white,
+                            child: Text(
+                              userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Edit profile picture')),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.green,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 20,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
