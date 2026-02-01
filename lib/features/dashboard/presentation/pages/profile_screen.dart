@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../state/profile_provider.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
@@ -17,7 +18,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   File? _profileImage;
-
   // permission
   Future<bool> _requestPermission(Permission permission) async {
     final status = await permission.request();
@@ -69,6 +69,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() {
         _profileImage = File(photo.path);
       });
+      final userSessionService = ref.read(userSessionServiceProvider);
+      final customerId = userSessionService.getCurrentUserId();
+      if (customerId != null) {
+        await ref.read(profileViewModelProvider.notifier).saveProfileImage(photo.path, customerId);
+      }
     }
   }
 
@@ -84,6 +89,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() {
         _profileImage = File(image.path);
       });
+      final userSessionService = ref.read(userSessionServiceProvider);
+      final customerId = userSessionService.getCurrentUserId();
+      if (customerId != null) {
+        await ref.read(profileViewModelProvider.notifier).saveProfileImage(image.path, customerId);
+      }
+    }
+  }
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final String? customerId = userSessionService.getCurrentUserId();
+    if (customerId != null) {
+      await ref.read(profileViewModelProvider.notifier).loadProfile();
+      final profile = ref.read(profileViewModelProvider).profile;
+      if (profile?.imagePath != null) {
+        setState(() {
+          _profileImage = File(profile!.imagePath!);
+        });
+      }
     }
   }
 
