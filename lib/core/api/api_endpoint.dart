@@ -1,3 +1,5 @@
+// import 'dart:io';
+// import 'package:flutter/foundation.dart';
 
 class ApiEndpoints {
   ApiEndpoints._();
@@ -14,28 +16,24 @@ class ApiEndpoints {
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-  // // ============ Batch Endpoints ============
-  // static const String batches = '/batches';
-  // static String batchById(String id) => '/batches/$id';
 
-  // // ============ Category Endpoints ============
-  // static const String categories = '/categories';
-  // static String categoryById(String id) => '/categories/$id';
-
-  // ============ Customer Endpoints ============
+  // Customer Endpoints 
   static const String customers = '/customers';
   static const String customerLogin = '/customers/login';
   static const String customerRegister = '/customers/signup';
-  // static String customerById(String id) => '/customers/$id';
-  // // ============ Item Endpoints ============
-  // static const String items = '/items';
-  // static String itemById(String id) => '/items/$id';
-  // static String itemClaim(String id) => '/items/$id/claim';
+  
 
-  // ============ Comment Endpoints ============
-  // static const String comments = '/comments';
-  // static String commentById(String id) => '/comments/$id';
-  // static String commentsByItem(String itemId) => '/comments/item/$itemId';
-  // static String commentLike(String id) => '/comments/$id/like';
+  // profile image
+  static const String image = '/profile';
+  static String imageById(String id) => '/profile/$id';
+  static String imageClaim(String id) => '/profile/$id/claim';
+  static const String profileUploadPhoto = '/profile/upload';
+  // static const String profileUploadVideo = '/profile/upload-video';
+
+  // for images and videos :
+  // static String itemPicture(String filename) =>
+  //     '$mediaServerUrl/profile_photos/$filename';
+  // static String itemVideo(String filename) =>
+  //     '$mediaServerUrl/profile_videos/$filename';
 }
 
