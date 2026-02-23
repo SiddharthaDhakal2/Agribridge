@@ -5,6 +5,7 @@ import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/data/datasources/auth_datasource.dart';
 import 'package:agribridge/features/auth/data/models/auth_api_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 //import 'package:jwt_decoder/jwt_decoder.dart';
 
 // Provider
@@ -36,33 +37,42 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
   @override
   Future<AuthApiModel?> login(String email, String password) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.customerLogin,
-      data: {
-        'email': email,
-        'password': password,
-      },
-    );
-
-    if (response.data['success'] == true) {
-      final token = response.data['token'];
-      await _tokenService.saveToken(token);
-
-      final data = response.data['data'] as Map<String, dynamic>;
-      final user = AuthApiModel.fromJson(data);
-
-      // Save user session
-      await _userSessionService.saveUserSession(
-        userId: user.id!,
-        email: user.email,
-        fullName: user.fullName,
-        username: user.username,
-        profilePicture: user.profilePicture ?? '',
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.customerLogin,
+        data: {
+          'email': email,
+          'password': password,
+        },
       );
 
-      return user;
+      if (response.data['success'] == true) {
+        final token = response.data['token'];
+        await _tokenService.saveToken(token);
+
+        final data = response.data['data'] as Map<String, dynamic>;
+        final user = AuthApiModel.fromJson(data);
+
+        // Save user session
+        await _userSessionService.saveUserSession(
+          userId: user.id!,
+          email: user.email,
+          fullName: user.fullName,
+          username: user.username,
+          profilePicture: user.profilePicture ?? '',
+        );
+
+        return user;
+      }
+      return null;
+    } on DioError catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Invalid email or password');
+      } else if (e.response?.statusCode == 404) {
+        throw Exception('User not found');
+      }
+      rethrow;
     }
-    return null;
   }
 
   @override
