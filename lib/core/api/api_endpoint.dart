@@ -5,7 +5,7 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // Base URL - change this for production
-  static const String baseUrl = 'http://10.0.2.2:3000/agribridge';
+  static const String baseUrl = 'http://10.0.2.2:5000/api';
   //static const String baseUrl = 'http://localhost:3000/agribridge';
   //static const String baseUrl = 'http://192.168.1.xxx:3000/agribridge'; // Replace xxx with your IP
   // For Android Emulator use: 'http://10.0.2.2:3000/agribridge'
@@ -19,8 +19,8 @@ class ApiEndpoints {
 
   // Customer Endpoints 
   static const String customers = '/customers';
-  static const String customerLogin = '/customers/login';
-  static const String customerRegister = '/customers/signup';
+  static const String customerLogin = '/auth/login';
+  static const String customerRegister = '/auth/register';
   
 
   // profile image
