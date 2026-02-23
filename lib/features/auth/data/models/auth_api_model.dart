@@ -24,6 +24,7 @@ class AuthApiModel{
       "name": fullName,
       "email": email,
       "password": password,
+      "confirmPassword": password,
     };
   }
 
