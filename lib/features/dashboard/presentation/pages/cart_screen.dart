@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../state/cart_provider.dart';
 
 class CartScreen extends StatelessWidget {
   final VoidCallback? onStartShopping;
@@ -11,48 +14,41 @@ class CartScreen extends StatelessWidget {
   }
 }
 
-class CartScreenBody extends StatefulWidget {
+class CartScreenBody extends ConsumerStatefulWidget {
   final VoidCallback? onStartShopping;
 
   const CartScreenBody({super.key, this.onStartShopping});
 
   @override
-  State<CartScreenBody> createState() => _CartScreenBodyState();
+  ConsumerState<CartScreenBody> createState() => _CartScreenBodyState();
 }
 
-class _CartScreenBodyState extends State<CartScreenBody> {
-  final List<CartProduct> cartItems = [
-    CartProduct(
-      name: 'Lemon',
-      price: 50,
-      image: 'assets/images/lemon.jpg',
-      quantity: 1,
-    ),
-    CartProduct(
-      name: 'Wheat',
-      price: 70,
-      image: 'assets/images/wheat.jpg',
-      quantity: 1,
-    ),
-    CartProduct(
-      name: 'Apple',
-      price: 250,
-      image: 'assets/images/apple.jpg',
-      quantity: 1,
-    ),
-  ];
+class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
+  static const int deliveryCharge = 120;
 
-  int get subtotal => cartItems.fold(
-        0,
-        (sum, item) => sum + item.price * item.quantity,
-      );
+  double _subtotal(List<CartProduct> cartItems) {
+    return cartItems.fold(
+      0,
+      (sum, item) => sum + item.price * item.quantity,
+    );
+  }
 
-  final int deliveryCharge = 120;
-  int get activeDeliveryCharge => cartItems.isEmpty ? 0 : deliveryCharge;
-  int get total => subtotal + activeDeliveryCharge;
+  int _activeDeliveryCharge(List<CartProduct> cartItems) {
+    return cartItems.isEmpty ? 0 : deliveryCharge;
+  }
+
+  String _formatPrice(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cartItems = ref.watch(cartProvider);
+    final subtotal = _subtotal(cartItems);
+    final activeDeliveryCharge = _activeDeliveryCharge(cartItems);
+    final total = subtotal + activeDeliveryCharge;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -69,9 +65,17 @@ class _CartScreenBodyState extends State<CartScreenBody> {
           child: Column(
             children: [
               Expanded(
-                child: cartItems.isEmpty ? _buildEmptyState() : _buildCartList(),
+                child: cartItems.isEmpty
+                    ? _buildEmptyState()
+                    : _buildCartList(cartItems),
               ),
-              if (cartItems.isNotEmpty) _buildSummaryCard(),
+              if (cartItems.isNotEmpty)
+                _buildSummaryCard(
+                  cartItems: cartItems,
+                  subtotal: subtotal,
+                  activeDeliveryCharge: activeDeliveryCharge,
+                  total: total,
+                ),
             ],
           ),
         ),
@@ -79,20 +83,19 @@ class _CartScreenBodyState extends State<CartScreenBody> {
     );
   }
 
-  Widget _buildCartList() {
+  Widget _buildCartList(List<CartProduct> cartItems) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       itemCount: cartItems.length,
       itemBuilder: (context, index) {
         final item = cartItems[index];
         return Dismissible(
-          key: ValueKey('${item.name}_$index'),
+          key: ValueKey(item.id),
           direction: DismissDirection.endToStart,
           onDismissed: (_) {
             final removedItem = item;
-            setState(() {
-              cartItems.removeAt(index);
-            });
+            final removedIndex = index;
+            ref.read(cartProvider.notifier).removeItem(removedItem.id);
 
             final messenger = ScaffoldMessenger.of(context);
             messenger.hideCurrentSnackBar();
@@ -105,10 +108,9 @@ class _CartScreenBodyState extends State<CartScreenBody> {
                   label: 'Undo',
                   textColor: Colors.white,
                   onPressed: () {
-                    setState(() {
-                      final insertIndex = index <= cartItems.length ? index : cartItems.length;
-                      cartItems.insert(insertIndex, removedItem);
-                    });
+                    ref
+                        .read(cartProvider.notifier)
+                        .insertItem(removedIndex, removedItem);
                   },
                 ),
               ),
@@ -149,18 +151,10 @@ class _CartScreenBodyState extends State<CartScreenBody> {
           ),
           child: CartItemCard(
             item: item,
-            onAdd: () {
-              setState(() {
-                item.quantity++;
-              });
-            },
-            onRemove: () {
-              setState(() {
-                if (item.quantity > 1) {
-                  item.quantity--;
-                }
-              });
-            },
+            onAdd: () => ref.read(cartProvider.notifier).incrementQuantity(item.id),
+            onRemove: () =>
+                ref.read(cartProvider.notifier).decrementQuantity(item.id),
+            formatPrice: _formatPrice,
           ),
         );
       },
@@ -236,7 +230,12 @@ class _CartScreenBodyState extends State<CartScreenBody> {
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard({
+    required List<CartProduct> cartItems,
+    required double subtotal,
+    required int activeDeliveryCharge,
+    required double total,
+  }) {
     final bool isEmpty = cartItems.isEmpty;
 
     return Padding(
@@ -275,12 +274,12 @@ class _CartScreenBodyState extends State<CartScreenBody> {
             const SizedBox(height: 14),
             _SummaryRow(
               label: 'Subtotal',
-              value: 'Rs $subtotal',
+              value: 'Rs ${_formatPrice(subtotal)}',
             ),
             const SizedBox(height: 8),
             _SummaryRow(
               label: 'Delivery Charge',
-              value: 'Rs $activeDeliveryCharge',
+              value: 'Rs ${_formatPrice(activeDeliveryCharge.toDouble())}',
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -303,7 +302,7 @@ class _CartScreenBodyState extends State<CartScreenBody> {
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: Text(
-                    'Rs $total',
+                    'Rs ${_formatPrice(total)}',
                     key: ValueKey(total),
                     style: const TextStyle(
                       fontSize: 20,
@@ -319,13 +318,6 @@ class _CartScreenBodyState extends State<CartScreenBody> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isEmpty ? null : () {},
-                child: const Text(
-                  'Proceed To Checkout',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
                   disabledBackgroundColor: const Color(0xFFAED7B5),
@@ -344,6 +336,13 @@ class _CartScreenBodyState extends State<CartScreenBody> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
+                child: const Text(
+                  'Proceed To Checkout',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ],
@@ -353,35 +352,53 @@ class _CartScreenBodyState extends State<CartScreenBody> {
   }
 }
 
-class CartProduct {
-  final String name;
-  final int price;
-  final String image;
-  int quantity;
-
-  CartProduct({
-    required this.name,
-    required this.price,
-    required this.image,
-    required this.quantity,
-  });
-}
-
 class CartItemCard extends StatelessWidget {
   final CartProduct item;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final String Function(double value) formatPrice;
 
   const CartItemCard({
     super.key,
     required this.item,
     required this.onAdd,
     required this.onRemove,
+    required this.formatPrice,
   });
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: CartPalette.softGreen,
+      child: const Icon(
+        Icons.image_not_supported_outlined,
+        color: CartPalette.darkGreen,
+      ),
+    );
+  }
+
+  Widget _buildItemImage() {
+    final image = item.image.trim();
+    if (image.isEmpty) return _buildImageFallback();
+
+    if (image.toLowerCase().startsWith('http')) {
+      return Image.network(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+      );
+    }
+
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final int itemTotal = item.price * item.quantity;
+    final double itemTotal = item.price * item.quantity;
+    final String itemUnit = item.unit.trim().isEmpty ? 'Kg' : item.unit.trim();
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -405,19 +422,7 @@ class CartItemCard extends StatelessWidget {
             child: SizedBox(
               width: 76,
               height: 76,
-              child: Image.asset(
-                item.image,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: CartPalette.softGreen,
-                    child: const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: CartPalette.darkGreen,
-                    ),
-                  );
-                },
-              ),
+              child: _buildItemImage(),
             ),
           ),
           const SizedBox(width: 12),
@@ -435,13 +440,14 @@ class CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: CartPalette.softGreen,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    'Rs ${item.price}/Kg',
+                    'Rs ${formatPrice(item.price)}/$itemUnit',
                     style: const TextStyle(
                       color: CartPalette.primaryGreen,
                       fontWeight: FontWeight.w600,
@@ -450,7 +456,7 @@ class CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Total: Rs $itemTotal',
+                  'Total: Rs ${formatPrice(itemTotal)}',
                   style: const TextStyle(
                     fontSize: 13,
                     color: CartPalette.darkGreen,
@@ -473,14 +479,15 @@ class CartItemCard extends StatelessWidget {
                   icon: Icons.remove,
                   onTap: onRemove,
                 ),
-                Container(
+                SizedBox(
                   width: 34,
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${item.quantity}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: CartPalette.darkGreen,
+                  child: Center(
+                    child: Text(
+                      '${item.quantity}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: CartPalette.darkGreen,
+                      ),
                     ),
                   ),
                 ),
