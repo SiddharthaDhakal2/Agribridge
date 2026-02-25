@@ -31,6 +31,7 @@ class AuthApiModel{
   factory AuthApiModel.fromJson(Map<String,dynamic> json){
     final email = json['email'] as String;
     final name = json['name'] as String? ?? '';
+    final imageValue = json['profilePicture'] ?? json['image'];
     
     final finalName = name.isNotEmpty ? name : email.split('@').first;
     
@@ -39,7 +40,7 @@ class AuthApiModel{
       fullName: finalName,
       email: email,
       username: email.split('@').first,
-      profilePicture: json['profilePicture'] as String?,
+      profilePicture: imageValue is String ? imageValue : null,
     );
   }
 
