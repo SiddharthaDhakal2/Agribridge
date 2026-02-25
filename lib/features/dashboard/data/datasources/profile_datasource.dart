@@ -6,7 +6,12 @@ class ProfileDataSource {
 	final ProfileLocalDataSource localDataSource = ProfileLocalDataSource();
 
 	Future<void> saveProfileImage(String imagePath, {String? name, String? email}) async {
-		final profile = ProfileModel(name: name, email: email, imagePath: imagePath);
+		final existingProfile = await localDataSource.getProfile();
+		final profile = ProfileModel(
+			name: name ?? existingProfile?.name,
+			email: email ?? existingProfile?.email,
+			imagePath: imagePath,
+		);
 		await localDataSource.saveProfile(profile);
 	}
 
