@@ -22,6 +22,7 @@ class UserSessionService {
   static const String _keyUserId = 'user_id';
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserFullName = 'user_full_name';
+  static const String _keyUserProfilePicture = 'user_profile_picture';
   static const String _keyToken = 'auth_token';
   static const String _keyUserCartPrefix = 'user_cart_';
 
@@ -38,6 +39,7 @@ class UserSessionService {
     await _prefs.setString(_keyUserId, userId);
     await _prefs.setString(_keyUserEmail, email);
     await _prefs.setString(_keyUserFullName, fullName);
+    await _prefs.setString(_keyUserProfilePicture, profilePicture);
   }
 
   // Check if user is logged in
@@ -60,6 +62,14 @@ class UserSessionService {
     return _prefs.getString(_keyUserFullName);
   }
 
+  String? getCurrentUserProfilePicture() {
+    return _prefs.getString(_keyUserProfilePicture);
+  }
+
+  Future<void> setCurrentUserProfilePicture(String profilePicture) async {
+    await _prefs.setString(_keyUserProfilePicture, profilePicture);
+  }
+
 
   // Save token
   Future<void> saveToken(String token) async {
@@ -78,6 +88,7 @@ class UserSessionService {
     await _prefs.remove(_keyUserId);
     await _prefs.remove(_keyUserEmail);
     await _prefs.remove(_keyUserFullName);
+    await _prefs.remove(_keyUserProfilePicture);
     await _secureStorage.delete(key: _keyToken);
   }
 
