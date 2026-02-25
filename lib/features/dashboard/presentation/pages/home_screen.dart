@@ -181,6 +181,7 @@ class HomeScreen extends ConsumerWidget {
                                             Navigator.of(context).push(
                                               MaterialPageRoute(
                                                 builder: (_) => ProductDetailScreen(
+                                                  productId: product.id,
                                                   imageUrl: product.image.startsWith('http')
                                                       ? product.image
                                                       : 'http://10.0.2.2:5000${product.image}',
