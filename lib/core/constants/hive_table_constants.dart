@@ -18,4 +18,8 @@ class HiveTableConstant{
 
   static const int commentsTypeId = 4;
   static const String commentsTable = 'comments_table';
+
+  // Product table for home screen/products
+  static const int productTypeId = 5;
+  static const String productTable = 'product_table';
 }
