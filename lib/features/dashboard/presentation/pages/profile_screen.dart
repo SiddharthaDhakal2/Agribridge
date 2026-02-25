@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../state/profile_provider.dart';
+import '../state/cart_provider.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
@@ -370,6 +371,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
+              await ref.read(userSessionServiceProvider).clearSession();
+              ref.read(cartProvider.notifier).clear();
               ref.read(authViewModelProvider.notifier).logout();
               if (context.mounted) {
                 Navigator.pushReplacement(
