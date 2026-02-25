@@ -1,0 +1,459 @@
+import 'package:flutter/material.dart';
+
+class ProductDetailScreen extends StatefulWidget {
+  final String imageUrl;
+  final String name;
+  final String description;
+  final double price;
+  final String unit;
+  final String availability;
+
+  const ProductDetailScreen({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.unit,
+    required this.availability,
+  });
+
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  int _quantity = 1;
+
+  bool get _isAvailable => !widget.availability.toLowerCase().contains('out');
+
+  String get _availabilityText {
+    final value = widget.availability.trim();
+    if (value.isNotEmpty) return value;
+    return _isAvailable ? 'in-stock' : 'out-of-stock';
+  }
+
+  String get _unitCaps {
+    final value = widget.unit.trim();
+    if (value.isEmpty) return 'Kg';
+    if (value.toLowerCase() == 'kg') return 'Kg';
+    return value;
+  }
+
+  String get _unitLower => _unitCaps.toLowerCase();
+
+  double get _totalPrice => widget.price * _quantity;
+
+  void _increaseQty() {
+    setState(() {
+      _quantity++;
+    });
+  }
+
+  void _decreaseQty() {
+    if (_quantity == 1) return;
+    setState(() {
+      _quantity--;
+    });
+  }
+
+  String _formatPrice(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
+  }
+
+  void _onAddToCart() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          content: Text('${widget.name} x$_quantity added to cart'),
+        ),
+      );
+  }
+
+  Widget _buildProductImage() {
+    final image = widget.imageUrl.trim();
+    if (image.isEmpty) {
+      return _ImageFallback(name: widget.name);
+    }
+
+    return Image.network(
+      image,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF2E7D32),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return _ImageFallback(name: widget.name);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF86C893),
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  top: 320,
+                  child: Container(
+                    width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(42),
+                    bottomRight: Radius.circular(42),
+                  ),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 85, 24, 20),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight - 44,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 6),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            widget.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 46,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF153E28),
+                                              height: 1.05,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            _availabilityText,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: _isAvailable
+                                                  ? const Color(0xFF4E6157)
+                                                  : const Color(0xFFC62828),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: _QtyStepper(
+                                        quantity: _quantity,
+                                        canDecrease: _quantity > 1,
+                                        onDecrease: _decreaseQty,
+                                        onIncrease: _increaseQty,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                Row(
+                                  children: [
+                                    _InfoChip(
+                                      text:
+                                          'Rs ${_formatPrice(widget.price)}/$_unitLower',
+                                      primary: true,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _InfoChip(
+                                      text: '$_quantity $_unitLower',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Product Description',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1E2E23),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  widget.description,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF5D6E65),
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Container(
+                  width: double.infinity,
+                  height: 360,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD8E2DA),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(56),
+                      bottomRight: Radius.circular(56),
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              size: 30,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: SizedBox(
+                              width: 220,
+                              height: 220,
+                              child: _buildProductImage(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF86C893),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Rs ${_formatPrice(_totalPrice)}',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: _isAvailable ? _onAddToCart : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFFE6ECE7),
+                      foregroundColor: Colors.black,
+                      disabledForegroundColor: const Color(0xFF919E95),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 36,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: const Text(
+                      'Add to cart',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  final int quantity;
+  final bool canDecrease;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  const _QtyStepper({
+    required this.quantity,
+    required this.canDecrease,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAF8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE1EAE3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QtyIconButton(
+            icon: Icons.remove,
+            onTap: onDecrease,
+            enabled: canDecrease,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              '$quantity',
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF86A895),
+              ),
+            ),
+          ),
+          _QtyIconButton(
+            icon: Icons.add,
+            onTap: onIncrease,
+            enabled: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QtyIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  const _QtyIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.enabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: Icon(
+          icon,
+          size: 17,
+          color: enabled ? const Color(0xFF8EB8A0) : const Color(0xFFC6D6CB),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String text;
+  final bool primary;
+
+  const _InfoChip({
+    required this.text,
+    this.primary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: primary ? const Color(0xFFE3F4E8) : const Color(0xFFEDF2EE),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: primary ? const Color(0xFF4C9A61) : const Color(0xFF56695D),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageFallback extends StatelessWidget {
+  final String name;
+
+  const _ImageFallback({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFE7EFE9),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.image_not_supported_outlined,
+              size: 34,
+              color: Color(0xFF739181),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Color(0xFF5E776A),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
