@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../state/profile_provider.dart';
 import '../state/cart_provider.dart';
+import 'package:agribridge/core/api/api_endpoint.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
@@ -19,6 +20,66 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   File? _profileImage;
+  String? _remoteProfileImageUrl;
+
+  bool _isRemoteImagePath(String? path) {
+    if (path == null) return false;
+    final trimmed = path.trim().replaceAll('\\', '/');
+    if (trimmed.isEmpty) return false;
+    return trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('/uploads/') ||
+        trimmed.startsWith('uploads/') ||
+        trimmed.contains('/uploads/');
+  }
+
+  String _initial(String userName) {
+    if (userName.isEmpty) return 'U';
+    return userName[0].toUpperCase();
+  }
+
+  Widget _buildAvatarText(String userName) {
+    return Text(
+      _initial(userName),
+      style: const TextStyle(
+        fontSize: 48,
+        fontWeight: FontWeight.bold,
+        color: Colors.green,
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(String userName, String? remoteImageUrl) {
+    if (_profileImage != null) {
+      return CircleAvatar(
+        radius: 60,
+        backgroundColor: Colors.white,
+        backgroundImage: FileImage(_profileImage!),
+      );
+    }
+
+    if (remoteImageUrl != null && remoteImageUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 60,
+        backgroundColor: Colors.white,
+        child: ClipOval(
+          child: Image.network(
+            remoteImageUrl,
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Center(child: _buildAvatarText(userName)),
+          ),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 60,
+      backgroundColor: Colors.white,
+      child: _buildAvatarText(userName),
+    );
+  }
   // permission
   Future<bool> _requestPermission(Permission permission) async {
     final status = await permission.request();
@@ -57,6 +118,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Future<void> _savePickedImage(XFile image) async {
+    setState(() {
+      _profileImage = File(image.path);
+    });
+
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final customerId = userSessionService.getCurrentUserId();
+    if (customerId == null) return;
+
+    await ref
+        .read(profileViewModelProvider.notifier)
+        .saveProfileImage(image.path, customerId);
+
+    final uploadedPath = ref.read(profileViewModelProvider).profile?.imagePath;
+    if (uploadedPath == null || uploadedPath.trim().isEmpty) return;
+
+    await userSessionService.setCurrentUserProfilePicture(uploadedPath);
+
+    if (!mounted) return;
+    setState(() {
+      _remoteProfileImageUrl = ApiEndpoints.resolveMediaUrl(uploadedPath);
+      _profileImage = null;
+    });
+  }
+
   // image picker
   Future<void> _pickFromCamera() async {
     if (!await _requestPermission(Permission.camera)) return;
@@ -67,14 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     if (photo != null) {
-      setState(() {
-        _profileImage = File(photo.path);
-      });
-      final userSessionService = ref.read(userSessionServiceProvider);
-      final customerId = userSessionService.getCurrentUserId();
-      if (customerId != null) {
-        await ref.read(profileViewModelProvider.notifier).saveProfileImage(photo.path, customerId);
-      }
+      await _savePickedImage(photo);
     }
   }
 
@@ -87,16 +166,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
 
     if (image != null) {
-      setState(() {
-        _profileImage = File(image.path);
-      });
-      final userSessionService = ref.read(userSessionServiceProvider);
-      final customerId = userSessionService.getCurrentUserId();
-      if (customerId != null) {
-        await ref.read(profileViewModelProvider.notifier).saveProfileImage(image.path, customerId);
-      }
+      await _savePickedImage(image);
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -105,16 +178,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadProfileImage() async {
     final userSessionService = ref.read(userSessionServiceProvider);
+    final sessionImagePath = userSessionService.getCurrentUserProfilePicture();
     final String? customerId = userSessionService.getCurrentUserId();
+
+    String? imagePath = sessionImagePath;
+
     if (customerId != null) {
       await ref.read(profileViewModelProvider.notifier).loadProfile();
       final profile = ref.read(profileViewModelProvider).profile;
-      if (profile?.imagePath != null) {
-        setState(() {
-          _profileImage = File(profile!.imagePath!);
-        });
+      final profileImagePath = profile?.imagePath;
+      if (_isRemoteImagePath(profileImagePath)) {
+        imagePath = profileImagePath;
       }
     }
+
+    if (!_isRemoteImagePath(imagePath)) return;
+    final resolvedImagePath = imagePath!;
+
+    if (!mounted) return;
+
+    await userSessionService.setCurrentUserProfilePicture(resolvedImagePath);
+
+    if (!mounted) return;
+    setState(() {
+      _remoteProfileImageUrl = ApiEndpoints.resolveMediaUrl(resolvedImagePath);
+      _profileImage = null;
+    });
   }
 
   // Future<void> _pickVideo() async {
@@ -177,10 +266,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userSessionService = ref.watch(userSessionServiceProvider);
-    final userName =
-        userSessionService.getCurrentUserFullName() ?? 'User';
-    final userEmail =
-        userSessionService.getCurrentUserEmail() ?? '';
+    final authState = ref.watch(authViewModelProvider);
+    final userName = userSessionService.getCurrentUserFullName() ?? 'User';
+    final userEmail = userSessionService.getCurrentUserEmail() ?? '';
+    final sessionImagePath = userSessionService.getCurrentUserProfilePicture();
+    final authImagePath = authState.authEntity?.profilePicture;
+    final profileImageUrl = (_remoteProfileImageUrl != null && _remoteProfileImageUrl!.isNotEmpty)
+        ? _remoteProfileImageUrl
+        : (_isRemoteImagePath(authImagePath)
+            ? ApiEndpoints.resolveMediaUrl(authImagePath!)
+            : (_isRemoteImagePath(sessionImagePath)
+                ? ApiEndpoints.resolveMediaUrl(sessionImagePath!)
+                : null));
 
     return Scaffold(
       body: SafeArea(
@@ -229,25 +326,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       child: Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.white,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : null,
-                            child: _profileImage == null
-                                ? Text(
-                                    userName.isNotEmpty
-                                        ? userName[0].toUpperCase()
-                                        : 'U',
-                                    style: const TextStyle(
-                                      fontSize: 48,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  )
-                                : null,
-                          ),
+                          _buildProfileAvatar(userName, profileImageUrl),
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -430,7 +509,7 @@ class _MenuItem extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: (iconColor ?? Colors.lime).withOpacity(0.1),
+                    color: (iconColor ?? Colors.lime).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
