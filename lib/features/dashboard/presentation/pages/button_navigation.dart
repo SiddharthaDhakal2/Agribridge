@@ -15,19 +15,23 @@ class ButtonNavigation extends StatefulWidget {
 class _ButtonNavigationState extends State<ButtonNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    CartScreen(),
-    OrderScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: [
+          const HomeScreen(),
+          CartScreen(
+            onStartShopping: () {
+              setState(() {
+                _currentIndex = 0;
+              });
+            },
+          ),
+          const OrderScreen(),
+          const ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
