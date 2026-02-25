@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProductDetailScreen extends StatefulWidget {
+import '../state/cart_provider.dart';
+
+class ProductDetailScreen extends ConsumerStatefulWidget {
+  final String productId;
   final String imageUrl;
   final String name;
   final String description;
@@ -10,6 +14,7 @@ class ProductDetailScreen extends StatefulWidget {
 
   const ProductDetailScreen({
     super.key,
+    required this.productId,
     required this.imageUrl,
     required this.name,
     required this.description,
@@ -19,10 +24,11 @@ class ProductDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+  ConsumerState<ProductDetailScreen> createState() =>
+      _ProductDetailScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   int _quantity = 1;
 
   bool get _isAvailable => !widget.availability.toLowerCase().contains('out');
@@ -63,6 +69,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _onAddToCart() {
+    ref.read(cartProvider.notifier).addItem(
+          CartProduct(
+            id: widget.productId,
+            name: widget.name,
+            price: widget.price,
+            image: widget.imageUrl,
+            unit: _unitCaps,
+            quantity: _quantity,
+          ),
+        );
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
