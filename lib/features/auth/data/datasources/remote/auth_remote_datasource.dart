@@ -30,6 +30,28 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         _userSessionService = userSessionService,
         _tokenService = tokenService;
 
+  String? _extractImagePath(Map<String, dynamic> data) {
+    final candidates = [
+      data['profilePicture'],
+      data['image'],
+      data['avatar'],
+      data['photo'],
+    ];
+
+    for (final value in candidates) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value;
+      }
+      if (value is Map<String, dynamic>) {
+        final nested = value['url'] ?? value['path'] ?? value['src'];
+        if (nested is String && nested.trim().isNotEmpty) {
+          return nested;
+        }
+      }
+    }
+    return null;
+  }
+
   @override
   Future<AuthApiModel?> getUserById(String authId) async {
     throw UnimplementedError();
@@ -49,9 +71,11 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
       if (response.data['success'] == true) {
         final token = response.data['token'];
         await _tokenService.saveToken(token);
+        await _userSessionService.saveToken(token);
 
         final data = response.data['data'] as Map<String, dynamic>;
         final user = AuthApiModel.fromJson(data);
+        final profilePicture = _extractImagePath(data) ?? user.profilePicture ?? '';
 
         // Save user session
         await _userSessionService.saveUserSession(
@@ -59,13 +83,13 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
           email: user.email,
           fullName: user.fullName,
           username: user.username,
-          profilePicture: user.profilePicture ?? '',
+          profilePicture: profilePicture,
         );
 
         return user;
       }
       return null;
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw Exception('Invalid email or password');
       } else if (e.response?.statusCode == 404) {
