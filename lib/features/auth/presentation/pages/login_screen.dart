@@ -1,4 +1,5 @@
 import 'package:agribridge/features/dashboard/presentation/pages/button_navigation.dart';
+import 'package:agribridge/features/dashboard/presentation/state/cart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Listen to auth state changes
     ref.listen<AuthState>(authViewModelProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
+        ref.read(cartProvider.notifier).loadCartForCurrentUser();
         AppRoutes.pushAndRemoveUntil(context, const ButtonNavigation());
       } else if (next.status == AuthStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
