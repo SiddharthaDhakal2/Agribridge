@@ -23,6 +23,7 @@ class UserSessionService {
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserFullName = 'user_full_name';
   static const String _keyToken = 'auth_token';
+  static const String _keyUserCartPrefix = 'user_cart_';
 
   UserSessionService({required SharedPreferences prefs}) : _prefs = prefs;
 
@@ -78,6 +79,23 @@ class UserSessionService {
     await _prefs.remove(_keyUserEmail);
     await _prefs.remove(_keyUserFullName);
     await _secureStorage.delete(key: _keyToken);
+  }
+
+  String _cartKey(String userId) => '$_keyUserCartPrefix$userId';
+
+  Future<void> saveCartForUser({
+    required String userId,
+    required String cartJson,
+  }) async {
+    await _prefs.setString(_cartKey(userId), cartJson);
+  }
+
+  String? getCartForUser(String userId) {
+    return _prefs.getString(_cartKey(userId));
+  }
+
+  Future<void> clearCartForUser(String userId) async {
+    await _prefs.remove(_cartKey(userId));
   }
 
   // Debug: Print all saved user data
