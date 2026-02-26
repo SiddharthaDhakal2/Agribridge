@@ -1,4 +1,4 @@
-class HiveTableConstant{
+class HiveTableConstant {
   HiveTableConstant._();
 
   //Database name
@@ -22,4 +22,8 @@ class HiveTableConstant{
   // Product table for home screen/products
   static const int productTypeId = 5;
   static const String productTable = 'product_table';
+
+  // Order table for order history cache
+  static const int orderTypeId = 7;
+  static const String orderTable = 'order_table';
 }
