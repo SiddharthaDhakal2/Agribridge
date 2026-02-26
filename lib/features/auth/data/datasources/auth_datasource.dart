@@ -1,8 +1,9 @@
 // import 'package:agribridge/features/auth/data/models/auth_api_model.dart';
-import 'package:agribridge/features/auth/data/models/auth_api_model.dart' show AuthApiModel;
+import 'package:agribridge/features/auth/data/models/auth_api_model.dart'
+    show AuthApiModel;
 import 'package:agribridge/features/auth/data/models/auth_hive_model.dart';
 
-abstract interface class IAuthDatasource{
+abstract interface class IAuthDatasource {
   Future<bool> register(AuthHiveModel model);
   Future<AuthHiveModel?> login(String email, String password);
   Future<AuthHiveModel?> getCurrentUser();
@@ -16,9 +17,12 @@ abstract interface class IAuthRemoteDataSource {
   Future<AuthApiModel> register(AuthApiModel user);
   Future<AuthApiModel?> login(String email, String password);
   Future<AuthApiModel?> getUserById(String authId);
+  Future<String> changePassword({
+    required String userId,
+    required String currentPassword,
+    required String newPassword,
+  });
 }
-
-
 
 // abstract interface class IAuthLocalDataSource {
 //   Future<AuthHiveModel> register(AuthHiveModel user);
@@ -33,5 +37,5 @@ abstract interface class IAuthRemoteDataSource {
 //   Future<AuthApiModel> register(AuthApiModel user);
 //   Future<AuthApiModel?> login(String email, String password);
 //   Future<AuthApiModel?> getUserById(String authId);
-  
+
 // }
