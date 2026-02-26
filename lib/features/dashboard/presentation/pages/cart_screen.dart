@@ -1,6 +1,9 @@
+import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'payment_screen.dart';
 import '../state/cart_provider.dart';
 
 class CartScreen extends StatelessWidget {
@@ -27,10 +30,7 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
   static const int deliveryCharge = 120;
 
   double _subtotal(List<CartProduct> cartItems) {
-    return cartItems.fold(
-      0,
-      (sum, item) => sum + item.price * item.quantity,
-    );
+    return cartItems.fold(0, (sum, item) => sum + item.price * item.quantity);
   }
 
   int _activeDeliveryCharge(List<CartProduct> cartItems) {
@@ -40,6 +40,55 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
   String _formatPrice(double value) {
     if (value % 1 == 0) return value.toStringAsFixed(0);
     return value.toStringAsFixed(2);
+  }
+
+  Future<void> _openDeliveryInformationSheet({
+    required double subtotal,
+    required double deliveryFee,
+    required double total,
+  }) async {
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final fullName = (userSessionService.getCurrentUserFullName() ?? '').trim();
+    final email = (userSessionService.getCurrentUserEmail() ?? '').trim();
+    final phone = (userSessionService.getCurrentUserPhoneNumber() ?? '').trim();
+    final address = (userSessionService.getCurrentUserAddress() ?? '').trim();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _DeliveryInformationSheet(
+          fullName: fullName.isEmpty ? 'User' : fullName,
+          email: email,
+          initialPhone: phone,
+          initialAddress: address,
+          subtotal: subtotal,
+          deliveryFee: deliveryFee,
+          total: total,
+          formatPrice: _formatPrice,
+          onSubmit: (updatedPhone, updatedAddress) async {
+            await userSessionService.setCurrentUserPhoneNumber(updatedPhone);
+            await userSessionService.setCurrentUserAddress(updatedAddress);
+
+            if (sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
+            if (!mounted) return;
+
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PaymentScreen(
+                  subtotal: subtotal,
+                  deliveryFee: deliveryFee,
+                  total: total,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -55,10 +104,7 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              CartPalette.pageTop,
-              CartPalette.pageBottom,
-            ],
+            colors: [CartPalette.pageTop, CartPalette.pageBottom],
           ),
         ),
         child: SafeArea(
@@ -161,7 +207,8 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
           ),
           child: CartItemCard(
             item: item,
-            onAdd: () => ref.read(cartProvider.notifier).incrementQuantity(item.id),
+            onAdd: () =>
+                ref.read(cartProvider.notifier).incrementQuantity(item.id),
             onRemove: () =>
                 ref.read(cartProvider.notifier).decrementQuantity(item.id),
             formatPrice: _formatPrice,
@@ -229,10 +276,7 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
             ),
             child: const Text(
               'Start Shopping',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -293,10 +337,7 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(
-                color: CartPalette.softBorder,
-                height: 1,
-              ),
+              child: Divider(color: CartPalette.softBorder, height: 1),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -327,7 +368,15 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isEmpty ? null : () {},
+                onPressed: isEmpty
+                    ? null
+                    : () {
+                        _openDeliveryInformationSheet(
+                          subtotal: subtotal,
+                          deliveryFee: activeDeliveryCharge.toDouble(),
+                          total: total,
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
                   disabledBackgroundColor: const Color(0xFFAED7B5),
@@ -348,14 +397,362 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
                 ),
                 child: const Text(
                   'Proceed To Checkout',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeliveryInformationSheet extends StatefulWidget {
+  final String fullName;
+  final String email;
+  final String initialPhone;
+  final String initialAddress;
+  final double subtotal;
+  final double deliveryFee;
+  final double total;
+  final String Function(double value) formatPrice;
+  final Future<void> Function(String phone, String address) onSubmit;
+
+  const _DeliveryInformationSheet({
+    required this.fullName,
+    required this.email,
+    required this.initialPhone,
+    required this.initialAddress,
+    required this.subtotal,
+    required this.deliveryFee,
+    required this.total,
+    required this.formatPrice,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_DeliveryInformationSheet> createState() =>
+      _DeliveryInformationSheetState();
+}
+
+class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
+  static final RegExp _phoneRegex = RegExp(r'^\d{10}$');
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _phoneController;
+  late final TextEditingController _addressController;
+
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.initialPhone);
+    _addressController = TextEditingController(text: widget.initialAddress);
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  InputDecoration _inputDecoration({
+    required String hintText,
+    bool readOnly = false,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: readOnly ? const Color(0xFF667085) : const Color(0xFF98A2B3),
+      ),
+      filled: true,
+      fillColor: const Color(0xFFF1F3F6),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD0D5DD)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.2),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD0D5DD)),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD92D20), width: 1.1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD92D20), width: 1.2),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await widget.onSubmit(
+        _phoneController.text.trim(),
+        _addressController.text.trim(),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 160),
+        padding: EdgeInsets.only(bottom: viewInsetsBottom),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.92,
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F6F8),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Delivery Information',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF101828),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Color(0xFF667085)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Full Name (from profile)',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF344054),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: widget.fullName,
+                    enabled: false,
+                    style: const TextStyle(
+                      color: Color(0xFF475467),
+                      fontSize: 18,
+                    ),
+                    decoration: _inputDecoration(
+                      hintText: 'Full Name',
+                      readOnly: true,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Email Address (from profile)',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF344054),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: widget.email,
+                    enabled: false,
+                    style: const TextStyle(
+                      color: Color(0xFF475467),
+                      fontSize: 18,
+                    ),
+                    decoration: _inputDecoration(
+                      hintText: 'Email Address',
+                      readOnly: true,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Phone Number *',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF344054),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    decoration: _inputDecoration(
+                      hintText: 'Enter 10-digit phone number',
+                    ),
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) {
+                        return 'Phone number is required';
+                      }
+                      if (!_phoneRegex.hasMatch(trimmed)) {
+                        return 'Phone number must be exactly 10 digits';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Delivery Address *',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF344054),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _addressController,
+                    keyboardType: TextInputType.streetAddress,
+                    textInputAction: TextInputAction.done,
+                    minLines: 3,
+                    maxLines: 4,
+                    decoration: _inputDecoration(
+                      hintText: 'Enter your complete delivery address',
+                    ),
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) {
+                        return 'Delivery address is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F3F6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD0D5DD)),
+                    ),
+                    child: Column(
+                      children: [
+                        _SummaryRow(
+                          label: 'Subtotal',
+                          value: 'Rs ${widget.formatPrice(widget.subtotal)}',
+                        ),
+                        const SizedBox(height: 8),
+                        _SummaryRow(
+                          label: 'Delivery Fee',
+                          value: 'Rs ${widget.formatPrice(widget.deliveryFee)}',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Divider(color: Color(0xFFD0D5DD), height: 1),
+                        ),
+                        _SummaryRow(
+                          label: 'Total',
+                          value: 'Rs ${widget.formatPrice(widget.total)}',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF05A43D),
+                        disabledBackgroundColor: const Color(0xFF9ED9AF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Continue to Payment',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFFD0D5DD),
+                        foregroundColor: const Color(0xFF344054),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -429,11 +826,7 @@ class CartItemCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 76,
-              height: 76,
-              child: _buildItemImage(),
-            ),
+            child: SizedBox(width: 76, height: 76, child: _buildItemImage()),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -450,8 +843,10 @@ class CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: CartPalette.softGreen,
                     borderRadius: BorderRadius.circular(16),
@@ -485,10 +880,7 @@ class CartItemCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _QuantityActionButton(
-                  icon: Icons.remove,
-                  onTap: onRemove,
-                ),
+                _QuantityActionButton(icon: Icons.remove, onTap: onRemove),
                 SizedBox(
                   width: 34,
                   child: Center(
@@ -501,10 +893,7 @@ class CartItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                _QuantityActionButton(
-                  icon: Icons.add,
-                  onTap: onAdd,
-                ),
+                _QuantityActionButton(icon: Icons.add, onTap: onAdd),
               ],
             ),
           ),
@@ -518,10 +907,7 @@ class _QuantityActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _QuantityActionButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _QuantityActionButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -530,11 +916,7 @@ class _QuantityActionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Icon(
-          icon,
-          size: 18,
-          color: CartPalette.primaryGreen,
-        ),
+        child: Icon(icon, size: 18, color: CartPalette.primaryGreen),
       ),
     );
   }
@@ -544,10 +926,7 @@ class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-  });
+  const _SummaryRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
