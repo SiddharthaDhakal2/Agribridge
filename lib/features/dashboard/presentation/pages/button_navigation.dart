@@ -6,7 +6,9 @@ import 'order_screen.dart';
 import 'profile_screen.dart';
 
 class ButtonNavigation extends StatefulWidget {
-  const ButtonNavigation({super.key});
+  final int initialIndex;
+
+  const ButtonNavigation({super.key, this.initialIndex = 0});
 
   @override
   State<ButtonNavigation> createState() => _ButtonNavigationState();
@@ -14,6 +16,21 @@ class ButtonNavigation extends StatefulWidget {
 
 class _ButtonNavigationState extends State<ButtonNavigation> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialIndex;
+    if (initial < 0) {
+      _currentIndex = 0;
+      return;
+    }
+    if (initial > 3) {
+      _currentIndex = 3;
+      return;
+    }
+    _currentIndex = initial;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +46,13 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
               });
             },
           ),
-          const OrderScreen(),
+          OrderScreen(
+            onStartShopping: () {
+              setState(() {
+                _currentIndex = 0;
+              });
+            },
+          ),
           const ProfileScreen(),
         ],
       ),
@@ -41,9 +64,7 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
 
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
 
         onTap: (index) {
           setState(() {
@@ -52,10 +73,7 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
         },
 
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
             label: 'Cart',
@@ -64,10 +82,7 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
             icon: Icon(Icons.receipt_long),
             label: 'Orders',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
