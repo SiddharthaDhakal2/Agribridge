@@ -20,6 +20,7 @@ class ApiEndpoints {
   static const String customers = '/customers';
   static const String customerLogin = '/auth/login';
   static const String customerRegister = '/auth/register';
+  static String changePasswordById(String id) => '/auth/change-password/$id';
 
   // Order endpoints
   static const String orders = '/orders';
