@@ -103,10 +103,20 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
               SnackBar(
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 3),
-                content: Text('${removedItem.name} removed from cart'),
+                backgroundColor: const Color(0xFFFFF7CC),
+                content: Text(
+                  '${removedItem.name} removed from cart',
+                  style: const TextStyle(
+                    color: Color(0xFF2E6E49),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 action: SnackBarAction(
                   label: 'Undo',
-                  textColor: Colors.white,
+                  textColor: const Color(0xFF2E7D32),
                   onPressed: () {
                     ref
                         .read(cartProvider.notifier)
