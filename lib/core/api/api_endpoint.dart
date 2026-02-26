@@ -28,6 +28,8 @@ class ApiEndpoints {
   static const String ordersByStatus = '/orders/status';
   static String orderById(String id) => '/orders/$id';
   static String updateOrderStatusById(String id) => '/orders/$id/status';
+  static const String khaltiInitiatePayment = '/payments/khalti/initiate';
+  static const String khaltiVerifyPayment = '/payments/khalti/verify';
 
   // Profile
   static String profileById(String id) => '/auth/profile/$id';
