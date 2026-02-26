@@ -6,6 +6,7 @@ import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
 import 'package:agribridge/features/dashboard/presentation/pages/edit_profile_screen.dart';
+import 'package:agribridge/features/dashboard/presentation/pages/security_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -277,6 +278,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _openSecurityPage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SecurityScreen()));
+  }
+
   // UI
   @override
   Widget build(BuildContext context) {
@@ -402,15 +409,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     _MenuItem(
-                      icon: Icons.notifications,
-                      title: 'Notifications',
-                      onTap: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _MenuItem(
                       icon: Icons.security_rounded,
                       title: 'Privacy & Security',
-                      onTap: () {},
+                      onTap: _openSecurityPage,
                     ),
                     const SizedBox(height: 12),
                     _MenuItem(
