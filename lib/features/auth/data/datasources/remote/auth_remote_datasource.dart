@@ -124,4 +124,38 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
     }
     return user;
   }
+
+  @override
+  Future<String> changePassword({
+    required String userId,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _apiClient.put(
+        ApiEndpoints.changePasswordById(userId),
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        return 'Password updated successfully';
+      }
+
+      throw Exception('Failed to change password');
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map<String, dynamic>) {
+        final message = responseData['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          throw Exception(message);
+        }
+      }
+      throw Exception('Failed to change password');
+    }
+  }
 }
