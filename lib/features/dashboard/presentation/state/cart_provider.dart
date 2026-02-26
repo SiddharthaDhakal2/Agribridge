@@ -55,6 +55,10 @@ class CartNotifier extends StateNotifier<List<CartProduct>> {
     _persistCurrentUserCart();
   }
 
+  void clearInMemory() {
+    state = const [];
+  }
+
   String _itemKey(CartProduct item) {
     final id = item.id.trim();
     if (id.isNotEmpty) return id;
