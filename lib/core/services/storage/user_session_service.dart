@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // SharedPreferences instance provider
@@ -22,6 +23,9 @@ class UserSessionService {
   static const String _keyUserId = 'user_id';
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserFullName = 'user_full_name';
+  static const String _keyUsername = 'user_name';
+  static const String _keyUserPhoneNumber = 'user_phone_number';
+  static const String _keyUserAddress = 'user_address';
   static const String _keyUserProfilePicture = 'user_profile_picture';
   static const String _keyToken = 'auth_token';
   static const String _keyUserCartPrefix = 'user_cart_';
@@ -33,12 +37,26 @@ class UserSessionService {
     required String userId,
     required String email,
     required String fullName,
-    String? phoneNumber, required String profilePicture, required String username,
+    String? phoneNumber,
+    String? address,
+    required String profilePicture,
+    required String username,
   }) async {
     await _prefs.setBool(_keyIsLoggedIn, true);
     await _prefs.setString(_keyUserId, userId);
     await _prefs.setString(_keyUserEmail, email);
     await _prefs.setString(_keyUserFullName, fullName);
+    await _prefs.setString(_keyUsername, username);
+    if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+      await _prefs.remove(_keyUserPhoneNumber);
+    } else {
+      await _prefs.setString(_keyUserPhoneNumber, phoneNumber.trim());
+    }
+    if (address == null || address.trim().isEmpty) {
+      await _prefs.remove(_keyUserAddress);
+    } else {
+      await _prefs.setString(_keyUserAddress, address.trim());
+    }
     await _prefs.setString(_keyUserProfilePicture, profilePicture);
   }
 
@@ -62,6 +80,42 @@ class UserSessionService {
     return _prefs.getString(_keyUserFullName);
   }
 
+  String? getCurrentUserUsername() {
+    return _prefs.getString(_keyUsername);
+  }
+
+  String? getCurrentUserPhoneNumber() {
+    return _prefs.getString(_keyUserPhoneNumber);
+  }
+
+  String? getCurrentUserAddress() {
+    return _prefs.getString(_keyUserAddress);
+  }
+
+  Future<void> setCurrentUserFullName(String fullName) async {
+    await _prefs.setString(_keyUserFullName, fullName);
+  }
+
+  Future<void> setCurrentUserEmail(String email) async {
+    await _prefs.setString(_keyUserEmail, email);
+  }
+
+  Future<void> setCurrentUserPhoneNumber(String? phoneNumber) async {
+    if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+      await _prefs.remove(_keyUserPhoneNumber);
+      return;
+    }
+    await _prefs.setString(_keyUserPhoneNumber, phoneNumber.trim());
+  }
+
+  Future<void> setCurrentUserAddress(String? address) async {
+    if (address == null || address.trim().isEmpty) {
+      await _prefs.remove(_keyUserAddress);
+      return;
+    }
+    await _prefs.setString(_keyUserAddress, address.trim());
+  }
+
   String? getCurrentUserProfilePicture() {
     return _prefs.getString(_keyUserProfilePicture);
   }
@@ -69,7 +123,6 @@ class UserSessionService {
   Future<void> setCurrentUserProfilePicture(String profilePicture) async {
     await _prefs.setString(_keyUserProfilePicture, profilePicture);
   }
-
 
   // Save token
   Future<void> saveToken(String token) async {
@@ -81,13 +134,15 @@ class UserSessionService {
     return await _secureStorage.read(key: _keyToken);
   }
 
-
   // Clear user session (logout)
   Future<void> clearSession() async {
     await _prefs.remove(_keyIsLoggedIn);
     await _prefs.remove(_keyUserId);
     await _prefs.remove(_keyUserEmail);
     await _prefs.remove(_keyUserFullName);
+    await _prefs.remove(_keyUsername);
+    await _prefs.remove(_keyUserPhoneNumber);
+    await _prefs.remove(_keyUserAddress);
     await _prefs.remove(_keyUserProfilePicture);
     await _secureStorage.delete(key: _keyToken);
   }
@@ -111,11 +166,11 @@ class UserSessionService {
 
   // Debug: Print all saved user data
   void debugPrintUserData() {
-    print('USER SESSION DATA');
-    print('IsLoggedIn: ${isLoggedIn()}');
-    print('UserId: ${getCurrentUserId()}');
-    print('Email: ${getCurrentUserEmail()}');
-    print('FullName: ${getCurrentUserFullName()}');
-//     print('========================');
+    debugPrint('USER SESSION DATA');
+    debugPrint('IsLoggedIn: ${isLoggedIn()}');
+    debugPrint('UserId: ${getCurrentUserId()}');
+    debugPrint('Email: ${getCurrentUserEmail()}');
+    debugPrint('FullName: ${getCurrentUserFullName()}');
+    //     print('========================');
   }
 }
