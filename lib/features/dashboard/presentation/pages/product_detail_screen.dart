@@ -10,17 +10,19 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
   final String description;
   final double price;
   final String unit;
+  final int stockQuantity;
   final String availability;
 
   const ProductDetailScreen({
     super.key,
-    required this.productId,
-    required this.imageUrl,
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.unit,
-    required this.availability,
+    this.productId = '',
+    this.imageUrl = '',
+    this.name = 'Product',
+    this.description = 'No description available.',
+    this.price = 0,
+    this.unit = 'Kg',
+    this.stockQuantity = 0,
+    this.availability = 'out-of-stock',
   });
 
   @override
@@ -31,12 +33,38 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   int _quantity = 1;
 
-  bool get _isAvailable => !widget.availability.toLowerCase().contains('out');
+  String get _normalizedAvailability {
+    final value = widget.availability.trim().toLowerCase();
+    if (value.contains('out')) return 'out-of-stock';
+    if (value.contains('low')) return 'low-stock';
+    if (value == 'available' || value.contains('in')) return 'in-stock';
+    return '';
+  }
 
-  String get _availabilityText {
-    final value = widget.availability.trim();
-    if (value.isNotEmpty) return value;
-    return _isAvailable ? 'in-stock' : 'out-of-stock';
+  String get _stockStatus {
+    if (widget.stockQuantity <= 0) return 'out-of-stock';
+    final normalized = _normalizedAvailability;
+    if (normalized.isNotEmpty) return normalized;
+    return 'in-stock';
+  }
+
+  bool get _isAvailable => _stockStatus != 'out-of-stock';
+
+  bool get _canIncreaseQty =>
+      _isAvailable && _quantity < widget.stockQuantity;
+
+  String get _availabilityText => _stockStatus;
+
+  Color get _availabilityColor {
+    switch (_stockStatus) {
+      case 'low-stock':
+        return const Color(0xFFE67E22);
+      case 'out-of-stock':
+        return const Color(0xFFC62828);
+      case 'in-stock':
+      default:
+        return const Color(0xFF4E6157);
+    }
   }
 
   String get _unitCaps {
@@ -51,6 +79,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   double get _totalPrice => widget.price * _quantity;
 
   void _increaseQty() {
+    if (!_canIncreaseQty) return;
     setState(() {
       _quantity++;
     });
@@ -69,6 +98,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   void _onAddToCart() {
+    if (!_isAvailable) return;
+
     ref.read(cartProvider.notifier).addItem(
           CartProduct(
             id: widget.productId,
@@ -86,7 +117,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          content: Text('${widget.name} x$_quantity added to cart'),
+          backgroundColor: const Color(0xFFF1F8E9),
+          content: Text(
+            '${widget.name} x$_quantity added to cart',
+            style: const TextStyle(
+              color: Color(0xFF2E6E49),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
   }
@@ -169,9 +210,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                             _availabilityText,
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: _isAvailable
-                                                  ? const Color(0xFF4E6157)
-                                                  : const Color(0xFFC62828),
+                                              color: _availabilityColor,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
@@ -183,9 +222,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                       padding: const EdgeInsets.only(top: 4),
                                       child: _QtyStepper(
                                         quantity: _quantity,
-                                        canDecrease: _quantity > 1,
+                                        canDecrease: _quantity > 1 && _isAvailable,
                                         onDecrease: _decreaseQty,
                                         onIncrease: _increaseQty,
+                                        canIncrease: _canIncreaseQty,
                                       ),
                                     ),
                                   ],
@@ -310,9 +350,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                    child: const Text(
-                      'Add to cart',
-                      style: TextStyle(
+                    child: Text(
+                      _isAvailable ? 'Add to cart' : 'Out of stock',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -331,12 +371,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 class _QtyStepper extends StatelessWidget {
   final int quantity;
   final bool canDecrease;
+  final bool canIncrease;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
 
   const _QtyStepper({
     required this.quantity,
     required this.canDecrease,
+    required this.canIncrease,
     required this.onDecrease,
     required this.onIncrease,
   });
@@ -376,7 +418,7 @@ class _QtyStepper extends StatelessWidget {
           _QtyIconButton(
             icon: Icons.add,
             onTap: onIncrease,
-            enabled: true,
+            enabled: canIncrease,
           ),
         ],
       ),
