@@ -13,7 +13,9 @@ const List<_OrderFilterOption> _orderFilterOptions = [
 ];
 
 class OrderScreen extends ConsumerStatefulWidget {
-  const OrderScreen({super.key});
+  final VoidCallback? onStartShopping;
+
+  const OrderScreen({super.key, this.onStartShopping});
 
   @override
   ConsumerState<OrderScreen> createState() => _OrderScreenState();
@@ -102,7 +104,10 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       final status = _normalizeStatus(first.status);
       final createdAt = first.createdAt;
 
-      final itemSubtotal = items.fold<double>(0, (sum, item) => sum + item.total);
+      final itemSubtotal = items.fold<double>(
+        0,
+        (sum, item) => sum + item.total,
+      );
       double subtotal = itemSubtotal > 0 ? itemSubtotal : first.orderSubtotal;
 
       double deliveryFee = first.deliveryFee;
@@ -288,16 +293,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           data: (orders) {
             final groups = _buildOrderGroups(orders);
             if (groups.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No orders found',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: _OrderPalette.secondaryText,
-                  ),
-                ),
-              );
+              return _OrderEmptyState(onStartShopping: widget.onStartShopping);
             }
 
             final filteredGroups = _applyFilters(groups);
@@ -613,6 +609,85 @@ class _OrderFilterOption {
   final String label;
 
   const _OrderFilterOption({required this.value, required this.label});
+}
+
+class _OrderEmptyState extends StatelessWidget {
+  final VoidCallback? onStartShopping;
+
+  const _OrderEmptyState({this.onStartShopping});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDEFF2),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                size: 42,
+                color: Color(0xFF9FA6B2),
+              ),
+            ),
+            const SizedBox(height: 22),
+            const Text(
+              'No orders yet',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Start shopping to place your first order.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF4B5563),
+                fontSize: 20,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: onStartShopping ?? () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B34A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Start Shopping',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _OrderFilterEmptyState extends StatelessWidget {
