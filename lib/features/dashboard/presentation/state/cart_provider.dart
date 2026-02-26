@@ -52,6 +52,7 @@ class CartNotifier extends StateNotifier<List<CartProduct>> {
 
   void clear() {
     state = const [];
+    _persistCurrentUserCart();
   }
 
   String _itemKey(CartProduct item) {
@@ -62,8 +63,9 @@ class CartNotifier extends StateNotifier<List<CartProduct>> {
 
   void addItem(CartProduct newItem) {
     final newItemKey = _itemKey(newItem);
-    final existingIndex =
-        state.indexWhere((item) => _itemKey(item) == newItemKey);
+    final existingIndex = state.indexWhere(
+      (item) => _itemKey(item) == newItemKey,
+    );
     if (existingIndex == -1) {
       state = [...state, newItem];
       _persistCurrentUserCart();
@@ -127,12 +129,7 @@ class CartNotifier extends StateNotifier<List<CartProduct>> {
     if (userId == null || userId.isEmpty) return;
 
     final cartJson = jsonEncode(state.map((item) => item.toJson()).toList());
-    unawaited(
-      session.saveCartForUser(
-        userId: userId,
-        cartJson: cartJson,
-      ),
-    );
+    unawaited(session.saveCartForUser(userId: userId, cartJson: cartJson));
   }
 }
 
