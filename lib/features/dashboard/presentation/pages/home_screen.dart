@@ -189,6 +189,7 @@ class HomeScreen extends ConsumerWidget {
                                                   description: product.description,
                                                   price: product.price,
                                                   unit: product.unit,
+                                                  stockQuantity: product.quantity,
                                                   availability: product.availability,
                                                 ),
                                               ),
