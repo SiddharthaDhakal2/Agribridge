@@ -16,12 +16,17 @@ class ApiEndpoints {
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-
-  // Customer Endpoints 
+  // Customer Endpoints
   static const String customers = '/customers';
   static const String customerLogin = '/auth/login';
   static const String customerRegister = '/auth/register';
-  
+
+  // Order endpoints
+  static const String orders = '/orders';
+  static const String myOrders = '/orders/my-orders';
+  static const String ordersByStatus = '/orders/status';
+  static String orderById(String id) => '/orders/$id';
+  static String updateOrderStatusById(String id) => '/orders/$id/status';
 
   // Profile
   static String profileById(String id) => '/auth/profile/$id';
@@ -57,4 +62,3 @@ class ApiEndpoints {
     return '$serverUrl/$trimmed';
   }
 }
-
