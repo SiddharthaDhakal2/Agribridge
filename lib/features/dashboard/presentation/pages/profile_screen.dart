@@ -5,6 +5,7 @@ import 'package:agribridge/core/api/api_endpoint.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
+import 'package:agribridge/features/dashboard/presentation/pages/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -68,7 +69,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             width: 120,
             height: 120,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Center(child: _buildAvatarText(userName)),
+            errorBuilder: (_, __, ___) =>
+                Center(child: _buildAvatarText(userName)),
           ),
         ),
       );
@@ -80,6 +82,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: _buildAvatarText(userName),
     );
   }
+
   // permission
   Future<bool> _requestPermission(Permission permission) async {
     final status = await permission.request();
@@ -262,7 +265,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // UI 
+  Future<void> _openEditProfilePage() async {
+    final isUpdated = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+
+    if (!mounted) return;
+    if (isUpdated == true) {
+      await _loadProfileImage();
+      setState(() {});
+    }
+  }
+
+  // UI
   @override
   Widget build(BuildContext context) {
     final userSessionService = ref.watch(userSessionServiceProvider);
@@ -271,13 +286,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userEmail = userSessionService.getCurrentUserEmail() ?? '';
     final sessionImagePath = userSessionService.getCurrentUserProfilePicture();
     final authImagePath = authState.authEntity?.profilePicture;
-    final profileImageUrl = (_remoteProfileImageUrl != null && _remoteProfileImageUrl!.isNotEmpty)
+    final profileImageUrl =
+        (_remoteProfileImageUrl != null && _remoteProfileImageUrl!.isNotEmpty)
         ? _remoteProfileImageUrl
         : (_isRemoteImagePath(authImagePath)
-            ? ApiEndpoints.resolveMediaUrl(authImagePath!)
-            : (_isRemoteImagePath(sessionImagePath)
-                ? ApiEndpoints.resolveMediaUrl(sessionImagePath!)
-                : null));
+              ? ApiEndpoints.resolveMediaUrl(authImagePath!)
+              : (_isRemoteImagePath(sessionImagePath)
+                    ? ApiEndpoints.resolveMediaUrl(sessionImagePath!)
+                    : null));
 
     return Scaffold(
       body: SafeArea(
@@ -366,10 +382,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 8),
                     Text(
                       userEmail,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ],
                 ),
@@ -385,7 +398,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _MenuItem(
                       icon: Icons.person_outline_rounded,
                       title: 'Edit Profile',
-                      onTap: () {},
+                      onTap: _openEditProfilePage,
                     ),
                     const SizedBox(height: 12),
                     _MenuItem(
@@ -434,9 +447,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Logout',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -456,9 +467,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const LoginScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               }
             },
@@ -512,11 +521,7 @@ class _MenuItem extends StatelessWidget {
                     color: (iconColor ?? Colors.lime).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    color: iconColor ?? Colors.black,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: iconColor ?? Colors.black, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
