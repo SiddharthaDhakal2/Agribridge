@@ -463,7 +463,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPressed: () async {
               Navigator.pop(dialogContext);
               await ref.read(userSessionServiceProvider).clearSession();
-              ref.read(cartProvider.notifier).clear();
+              ref.read(cartProvider.notifier).clearInMemory();
               ref.read(authViewModelProvider.notifier).logout();
               if (context.mounted) {
                 Navigator.pushReplacement(
