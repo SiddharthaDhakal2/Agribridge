@@ -26,9 +26,9 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
     required ApiClient apiClient,
     required UserSessionService userSessionService,
     required TokenService tokenService,
-  })  : _apiClient = apiClient,
-        _userSessionService = userSessionService,
-        _tokenService = tokenService;
+  }) : _apiClient = apiClient,
+       _userSessionService = userSessionService,
+       _tokenService = tokenService;
 
   String? _extractImagePath(Map<String, dynamic> data) {
     final candidates = [
@@ -62,10 +62,7 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.customerLogin,
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       if (response.data['success'] == true) {
@@ -75,13 +72,16 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
         final data = response.data['data'] as Map<String, dynamic>;
         final user = AuthApiModel.fromJson(data);
-        final profilePicture = _extractImagePath(data) ?? user.profilePicture ?? '';
+        final profilePicture =
+            _extractImagePath(data) ?? user.profilePicture ?? '';
 
         // Save user session
         await _userSessionService.saveUserSession(
           userId: user.id!,
           email: user.email,
           fullName: user.fullName,
+          phoneNumber: (data['phone'] as String?)?.trim(),
+          address: (data['address'] as String?)?.trim(),
           username: user.username,
           profilePicture: profilePicture,
         );
@@ -112,11 +112,13 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
       // Save user data locally for session
       await _userSessionService.saveUserSession(
-      userId: registeredUser.id!,
-      email: registeredUser.email,
-      fullName: registeredUser.fullName,
-      username: registeredUser.username,
-      profilePicture: registeredUser.profilePicture ?? '',
+        userId: registeredUser.id!,
+        email: registeredUser.email,
+        fullName: registeredUser.fullName,
+        phoneNumber: (data['phone'] as String?)?.trim(),
+        address: (data['address'] as String?)?.trim(),
+        username: registeredUser.username,
+        profilePicture: registeredUser.profilePicture ?? '',
       );
       return registeredUser;
     }
