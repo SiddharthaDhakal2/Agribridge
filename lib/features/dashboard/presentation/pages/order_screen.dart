@@ -182,11 +182,21 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 
   Widget _buildSearchField() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final bgColor = isDarkMode ? theme.colorScheme.surface : const Color(0xFFE9ECF2);
+    final primaryText = isDarkMode ? Colors.white : _OrderPalette.primaryText;
+    final secondaryText = isDarkMode ? Colors.white60 : _OrderPalette.secondaryText;
+    final searchIconColor = isDarkMode ? Colors.white70 : const Color(0xFF2E4D83);
+
     return Container(
       height: 46,
       decoration: BoxDecoration(
-        color: const Color(0xFFE9ECF2),
+        color: bgColor,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDarkMode ? Colors.white12 : Colors.transparent,
+        ),
       ),
       child: TextField(
         controller: _searchController,
@@ -196,21 +206,21 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
             _searchQuery = value;
           });
         },
-        style: const TextStyle(
-          color: _OrderPalette.primaryText,
+        style: TextStyle(
+          color: primaryText,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           hintText: 'Search',
-          hintStyle: const TextStyle(
-            color: _OrderPalette.secondaryText,
+          hintStyle: TextStyle(
+            color: secondaryText,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
-            color: Color(0xFF2E4D83),
+            color: searchIconColor,
             size: 20,
           ),
           suffixIcon: _searchQuery.isEmpty
@@ -223,7 +233,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                     });
                   },
                   icon: const Icon(Icons.close_rounded, size: 18),
-                  color: _OrderPalette.secondaryText,
+                  color: secondaryText,
                 ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -233,6 +243,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 
   Widget _buildStatusFilterRow() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 42,
       child: ListView.separated(
@@ -256,13 +268,20 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? const Color(0xFF21C371)
-                    : const Color(0xFFE9ECF2),
+                    : (isDarkMode
+                          ? const Color(0xFF242B28)
+                          : const Color(0xFFE9ECF2)),
                 borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: isDarkMode ? Colors.white12 : Colors.transparent,
+                ),
               ),
               child: Text(
                 filter.label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF97A3B8),
+                  color: isSelected
+                      ? Colors.white
+                      : (isDarkMode ? Colors.white70 : const Color(0xFF97A3B8)),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -277,13 +296,17 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     final orderState = ref.watch(orderViewModelProvider);
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F3F6),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: orderState.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: _OrderPalette.totalGreen),
+          loading: () => Center(
+            child: CircularProgressIndicator(
+              color: isDarkMode ? const Color(0xFF81C784) : _OrderPalette.totalGreen,
+            ),
           ),
           error: (error, _) => _OrderLoadError(
             message: error.toString(),
@@ -299,7 +322,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
             final filteredGroups = _applyFilters(groups);
 
             return RefreshIndicator(
-              color: _OrderPalette.totalGreen,
+              color: isDarkMode ? const Color(0xFF81C784) : _OrderPalette.totalGreen,
               onRefresh: () =>
                   ref.read(orderViewModelProvider.notifier).refreshOrders(),
               child: ListView(
@@ -352,15 +375,25 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusStyle = _statusStyle(group.status);
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final statusStyle = _statusStyle(group.status, isDarkMode: isDarkMode);
+    final cardColor = isDarkMode ? theme.colorScheme.surface : Colors.white;
+    final primaryText = isDarkMode ? Colors.white : _OrderPalette.primaryText;
+    final secondaryText = isDarkMode ? Colors.white70 : _OrderPalette.primaryText;
+    final dividerColor = isDarkMode ? Colors.white12 : _OrderPalette.divider;
+    final totalColor = isDarkMode ? const Color(0xFF8EE0A7) : _OrderPalette.totalGreen;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.white12 : Colors.transparent,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.06),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -377,8 +410,8 @@ class _OrderCard extends StatelessWidget {
                   children: [
                     Text(
                       'Order ID: ${formatOrderId(group.orderId)}',
-                      style: const TextStyle(
-                        color: _OrderPalette.primaryText,
+                      style: TextStyle(
+                        color: primaryText,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -386,8 +419,8 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       formatDate(group.createdAt),
-                      style: const TextStyle(
-                        color: _OrderPalette.primaryText,
+                      style: TextStyle(
+                        color: secondaryText,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -403,12 +436,13 @@ class _OrderCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: statusStyle.background,
                   borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: statusStyle.border),
                 ),
                 child: Text(
                   statusStyle.label,
                   style: TextStyle(
                     color: statusStyle.foreground,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
                 ),
@@ -416,7 +450,7 @@ class _OrderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Divider(color: _OrderPalette.divider),
+          Divider(color: dividerColor),
           const SizedBox(height: 8),
           ...group.items.map(
             (item) => Padding(
@@ -426,8 +460,8 @@ class _OrderCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${item.name} x ${item.quantity}',
-                      style: const TextStyle(
-                        color: _OrderPalette.primaryText,
+                      style: TextStyle(
+                        color: primaryText,
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
@@ -435,8 +469,8 @@ class _OrderCard extends StatelessWidget {
                   ),
                   Text(
                     'Rs ${formatAmount(item.total)}',
-                    style: const TextStyle(
-                      color: _OrderPalette.primaryText,
+                    style: TextStyle(
+                      color: primaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -445,7 +479,7 @@ class _OrderCard extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(color: _OrderPalette.divider),
+          Divider(color: dividerColor),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,10 +488,10 @@ class _OrderCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Delivery to',
                       style: TextStyle(
-                        color: _OrderPalette.primaryText,
+                        color: secondaryText,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -465,8 +499,8 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       group.customerName.isEmpty ? 'N/A' : group.customerName,
-                      style: const TextStyle(
-                        color: _OrderPalette.primaryText,
+                      style: TextStyle(
+                        color: primaryText,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -476,8 +510,8 @@ class _OrderCard extends StatelessWidget {
                       group.deliveryAddress.isEmpty
                           ? 'N/A'
                           : group.deliveryAddress,
-                      style: const TextStyle(
-                        color: _OrderPalette.primaryText,
+                      style: TextStyle(
+                        color: secondaryText,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -488,10 +522,10 @@ class _OrderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Total Amount',
                     style: TextStyle(
-                      color: _OrderPalette.primaryText,
+                      color: secondaryText,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -499,8 +533,8 @@ class _OrderCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Rs ${formatAmount(group.totalWithDelivery)}',
-                    style: const TextStyle(
-                      color: _OrderPalette.totalGreen,
+                    style: TextStyle(
+                      color: totalColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -514,43 +548,96 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  _StatusStyle _statusStyle(String status) {
+  _StatusStyle _statusStyle(String status, {required bool isDarkMode}) {
+    if (isDarkMode) {
+      switch (status) {
+        case 'processing':
+          return const _StatusStyle(
+            label: 'Processing',
+            background: Color(0xFF123661),
+            foreground: Color(0xFF9FC4FF),
+            border: Color(0xFF2E5A95),
+          );
+        case 'pending':
+          return const _StatusStyle(
+            label: 'Pending',
+            background: Color(0xFF5A3A00),
+            foreground: Color(0xFFFFD58A),
+            border: Color(0xFF8F5A00),
+          );
+        case 'shipped':
+          return const _StatusStyle(
+            label: 'Shipped',
+            background: Color(0xFF3A2D62),
+            foreground: Color(0xFFC3B4FF),
+            border: Color(0xFF5D4A91),
+          );
+        case 'delivered':
+          return const _StatusStyle(
+            label: 'Delivered',
+            background: Color(0xFF154B2E),
+            foreground: Color(0xFF8EE0A7),
+            border: Color(0xFF2A7348),
+          );
+        case 'cancelled':
+          return const _StatusStyle(
+            label: 'Cancelled',
+            background: Color(0xFF5A2020),
+            foreground: Color(0xFFFFB4AB),
+            border: Color(0xFF8B3A3A),
+          );
+        default:
+          return const _StatusStyle(
+            label: 'Pending',
+            background: Color(0xFF5A3A00),
+            foreground: Color(0xFFFFD58A),
+            border: Color(0xFF8F5A00),
+          );
+      }
+    }
+
     switch (status) {
       case 'processing':
         return const _StatusStyle(
           label: 'Processing',
           background: Color(0xFFD7E6FF),
           foreground: Color(0xFF1348B5),
+          border: Color(0xFFAFC8F1),
         );
       case 'pending':
         return const _StatusStyle(
           label: 'Pending',
           background: Color(0xFFFFE8C9),
           foreground: Color(0xFFB26E00),
+          border: Color(0xFFF3D3A4),
         );
       case 'shipped':
         return const _StatusStyle(
           label: 'Shipped',
           background: Color(0xFFE7E1FF),
           foreground: Color(0xFF6443C5),
+          border: Color(0xFFD3C8FF),
         );
       case 'delivered':
         return const _StatusStyle(
           label: 'Delivered',
           background: Color(0xFFD9F3E2),
           foreground: Color(0xFF177E41),
+          border: Color(0xFFBEE8CE),
         );
       case 'cancelled':
         return const _StatusStyle(
           label: 'Cancelled',
           background: Color(0xFFFADDDD),
           foreground: Color(0xFFB42318),
+          border: Color(0xFFF0C1BF),
         );
       default:
         return const _StatusStyle(
           label: 'Pending',
           background: Color(0xFFFFE8C9),
           foreground: Color(0xFFB26E00),
+          border: Color(0xFFF3D3A4),
         );
     }
   }
@@ -596,11 +683,13 @@ class _StatusStyle {
   final String label;
   final Color background;
   final Color foreground;
+  final Color border;
 
   const _StatusStyle({
     required this.label,
     required this.background,
     required this.foreground,
+    required this.border,
   });
 }
 
@@ -618,6 +707,10 @@ class _OrderEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF111827);
+    final subtitleColor = isDarkMode ? Colors.white70 : const Color(0xFF4B5563);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -628,37 +721,37 @@ class _OrderEmptyState extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: const Color(0xFFEDEFF2),
+                color: isDarkMode ? const Color(0xFF262D2A) : const Color(0xFFEDEFF2),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.receipt_long_rounded,
                 size: 42,
-                color: Color(0xFF9FA6B2),
+                color: isDarkMode ? Colors.white60 : const Color(0xFF9FA6B2),
               ),
             ),
             const SizedBox(height: 22),
-            const Text(
+            Text(
               'No orders yet',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: titleColor,
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Start shopping to place your first order.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFF4B5563),
+                color: subtitleColor,
                 fontSize: 20,
                 height: 1.35,
               ),
@@ -667,8 +760,10 @@ class _OrderEmptyState extends StatelessWidget {
             ElevatedButton(
               onPressed: onStartShopping ?? () {},
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B34A),
-                foregroundColor: Colors.white,
+                backgroundColor: isDarkMode
+                    ? const Color(0xFF81C784)
+                    : const Color(0xFF10B34A),
+                foregroundColor: isDarkMode ? const Color(0xFF0F1412) : Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 26,
@@ -695,11 +790,12 @@ class _OrderFilterEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Center(
       child: Text(
         'No orders match this filter',
         style: TextStyle(
-          color: _OrderPalette.secondaryText,
+          color: isDarkMode ? Colors.white70 : _OrderPalette.secondaryText,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
@@ -716,25 +812,29 @@ class _OrderLoadError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Failed to load orders',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: _OrderPalette.primaryText,
+                color: isDarkMode ? Colors.white : _OrderPalette.primaryText,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _OrderPalette.secondaryText),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : _OrderPalette.secondaryText,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -742,8 +842,12 @@ class _OrderLoadError extends StatelessWidget {
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _OrderPalette.totalGreen,
-                foregroundColor: Colors.white,
+                backgroundColor: isDarkMode
+                    ? const Color(0xFF81C784)
+                    : _OrderPalette.totalGreen,
+                foregroundColor: isDarkMode
+                    ? const Color(0xFF0F1412)
+                    : Colors.white,
               ),
               child: const Text('Retry'),
             ),

@@ -34,6 +34,9 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomNavTheme = theme.bottomNavigationBarTheme;
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -59,12 +62,12 @@ class _ButtonNavigationState extends State<ButtonNavigation> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        selectedItemColor: bottomNavTheme.selectedItemColor,
+        unselectedItemColor: bottomNavTheme.unselectedItemColor,
+        backgroundColor: bottomNavTheme.backgroundColor,
+        selectedLabelStyle:
+            bottomNavTheme.selectedLabelStyle ??
+            const TextStyle(fontWeight: FontWeight.bold),
 
         onTap: (index) {
           setState(() {

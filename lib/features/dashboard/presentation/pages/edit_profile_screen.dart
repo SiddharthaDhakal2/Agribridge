@@ -179,44 +179,72 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     required IconData icon,
     String? hint,
   }) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final prefixColor = isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final fillColor = isDarkMode ? const Color(0xFF242B28) : Colors.white;
+    final borderColor = isDarkMode ? Colors.white24 : Colors.green.shade100;
+
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF2E7D32)),
+      prefixIcon: Icon(icon, color: prefixColor),
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white70 : const Color(0xFF344054),
+      ),
+      hintStyle: TextStyle(
+        color: isDarkMode ? Colors.white54 : const Color(0xFF667085),
+      ),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: fillColor,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.green.shade100),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.4),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+          width: 1.4,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFFF2B8B5) : Colors.red,
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red, width: 1.4),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFFF2B8B5) : Colors.red,
+          width: 1.4,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final pageBg = theme.scaffoldBackgroundColor;
+    final cardBg = isDarkMode
+        ? theme.colorScheme.surface.withValues(alpha: 0.96)
+        : Colors.white.withValues(alpha: 0.95);
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF1E2A22);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F8F2),
+      backgroundColor: pageBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F8F2),
+        backgroundColor: pageBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Edit Profile',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1E2A22),
+            color: titleColor,
           ),
         ),
       ),
@@ -230,13 +258,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
+                  border: Border.all(
+                    color: isDarkMode ? Colors.white12 : Colors.transparent,
+                  ),
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x12000000),
+                      color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.07),
                       blurRadius: 14,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -335,9 +366,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B5E20),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.green.shade300,
+                    backgroundColor: isDarkMode
+                        ? const Color(0xFF81C784)
+                        : const Color(0xFF1B5E20),
+                    foregroundColor: isDarkMode
+                        ? const Color(0xFF0F1412)
+                        : Colors.white,
+                    disabledBackgroundColor: isDarkMode
+                        ? const Color(0xFF5A6B60)
+                        : Colors.green.shade300,
                     elevation: 2,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
@@ -345,13 +382,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                              isDarkMode ? const Color(0xFF0F1412) : Colors.white,
                             ),
                           ),
                         )

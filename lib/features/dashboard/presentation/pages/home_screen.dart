@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../state/home_provider.dart';
 import 'product_detail_screen.dart';
 
@@ -17,29 +17,54 @@ class HomeScreen extends ConsumerWidget {
     final categories = ['All', 'Fruits', 'Grains', 'Vegetables'];
     final selectedIndex = ref.watch(selectedCategoryProvider);
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    final topBackground = isDarkMode ? const Color(0xFF163224) : greenColor;
+    final contentBackground = isDarkMode
+        ? const Color(0xFF101512)
+        : Colors.grey.shade100;
+    final cardBackground = isDarkMode ? colorScheme.surface : Colors.white;
+    final mutedDividerColor = isDarkMode ? Colors.white12 : Colors.grey.shade300;
+    final sectionTitleColor = isDarkMode
+        ? colorScheme.onSurface
+        : const Color(0xFF3B4A63);
+    final itemTitleColor = isDarkMode
+        ? colorScheme.onSurface
+        : const Color(0xFF1F2937);
+    final priceColor = isDarkMode ? const Color(0xFF8EE0A7) : Colors.green;
+    final cardShadow = isDarkMode
+        ? Colors.black.withValues(alpha: 0.32)
+        : Colors.black.withValues(alpha: 0.05);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: greenColor,
+        backgroundColor: topBackground,
+        foregroundColor: Colors.white,
         elevation: 0,
+        toolbarHeight: 0,
+        automaticallyImplyLeading: false,
+        scrolledUnderElevation: 0,
       ),
       body: Stack(
         children: [
-          Container(color: greenColor),
+          Container(color: topBackground),
           Column(
             children: [
               const SizedBox(height: 70),
               Container(
-                color: Colors.grey.shade100,
+                color: contentBackground,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Category',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Color(0xFF3B4A63),
+                        color: sectionTitleColor,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -48,36 +73,43 @@ class HomeScreen extends ConsumerWidget {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: categories.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 12),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 12),
                         itemBuilder: (context, index) {
+                          final isSelected = selectedIndex == index;
                           return ChoiceChip(
                             label: Text(categories[index]),
-                            selected: selectedIndex == index,
+                            selected: isSelected,
                             onSelected: (selected) {
                               if (selected) {
-                                ref.read(selectedCategoryProvider.notifier).state = index;
+                                ref.read(selectedCategoryProvider.notifier).state =
+                                    index;
                               }
                             },
-                            selectedColor: greenColor,
-                            backgroundColor: Colors.white,
+                            selectedColor: isDarkMode
+                                ? const Color(0xFF1F7A3A)
+                                : greenColor,
+                            backgroundColor: cardBackground,
+                            side: BorderSide(
+                              color: isDarkMode ? Colors.white12 : Colors.transparent,
+                            ),
                             labelStyle: TextStyle(
-                              color: selectedIndex == index ? Colors.white : greenColor,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDarkMode ? Colors.white70 : greenColor),
                             ),
                           );
                         },
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Container(
-                      height: 2,
-                      color: Colors.grey.shade300,
-                    ),
+                    Container(height: 2, color: mutedDividerColor),
                   ],
                 ),
               ),
               Expanded(
                 child: Container(
-                  color: Colors.grey.shade100,
+                  color: contentBackground,
                   padding: const EdgeInsets.all(16),
                   child: productsAsync.when(
                     data: (products) {
@@ -92,25 +124,33 @@ class HomeScreen extends ConsumerWidget {
                               return p.category.toLowerCase() == cat;
                             }).toList();
                       if (filtered.isEmpty) {
-                        return const Center(child: Text('No products in this category'));
+                        return const Center(
+                          child: Text('No products in this category'),
+                        );
                       }
                       return GridView.builder(
                         itemCount: filtered.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.95,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.86,
+                            ),
                         itemBuilder: (context, index) {
                           final product = filtered[index];
                           return Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: cardBackground,
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDarkMode
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.04),
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: cardShadow,
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -120,47 +160,60 @@ class HomeScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12),
+                                  ),
                                   child: product.image.isNotEmpty
                                       ? Image.network(
                                           product.image.startsWith('http')
                                               ? product.image
                                               : 'http://10.0.2.2:5000${product.image}',
-                                          height: 130,
+                                          height: 120,
                                           width: double.infinity,
                                           fit: BoxFit.cover,
                                         )
                                       : Container(
-                                          height: 130,
+                                          height: 120,
                                           width: double.infinity,
-                                          color: Colors.grey.shade200,
-                                          child: const Center(child: Icon(Icons.image, size: 40)),
+                                          color: isDarkMode
+                                              ? Colors.white10
+                                              : Colors.grey.shade200,
+                                          child: Icon(
+                                            Icons.image,
+                                            size: 40,
+                                            color: isDarkMode
+                                                ? Colors.white54
+                                                : Colors.black45,
+                                          ),
                                         ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.all(8.0),
+                                  padding: const EdgeInsets.all(8),
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               product.name,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 16,
+                                                fontSize: 15,
+                                                color: itemTitleColor,
                                               ),
-                                              maxLines: 1,
+                                              maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
                                               'Rs ${product.price}/Kg',
-                                              style: const TextStyle(
-                                                color: Colors.green,
+                                              style: TextStyle(
+                                                color: priceColor,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -172,17 +225,26 @@ class HomeScreen extends ConsumerWidget {
                                         width: 32,
                                         height: 32,
                                         decoration: BoxDecoration(
-                                          color: greenColor,
+                                          color: isDarkMode
+                                              ? const Color(0xFF2F8F4B)
+                                              : greenColor,
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: IconButton(
-                                          icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                                          icon: const Icon(
+                                            Icons.add,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
                                           onPressed: () {
                                             Navigator.of(context).push(
                                               MaterialPageRoute(
                                                 builder: (_) => ProductDetailScreen(
                                                   productId: product.id,
-                                                  imageUrl: product.image.startsWith('http')
+                                                  imageUrl:
+                                                      product.image.startsWith(
+                                                        'http',
+                                                      )
                                                       ? product.image
                                                       : 'http://10.0.2.2:5000${product.image}',
                                                   name: product.name,
@@ -190,7 +252,8 @@ class HomeScreen extends ConsumerWidget {
                                                   price: product.price,
                                                   unit: product.unit,
                                                   stockQuantity: product.quantity,
-                                                  availability: product.availability,
+                                                  availability:
+                                                      product.availability,
                                                 ),
                                               ),
                                             );
@@ -222,20 +285,30 @@ class HomeScreen extends ConsumerWidget {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? colorScheme.surface : Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode ? Colors.white12 : Colors.transparent,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: TextField(
+                style: TextStyle(color: colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: 'Search products...',
-                  prefixIcon: Icon(Icons.search, color: greenColor),
+                  hintStyle: TextStyle(
+                    color: isDarkMode ? Colors.white60 : Colors.black54,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: isDarkMode ? Colors.white70 : greenColor,
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),

@@ -3,6 +3,7 @@ import '../state/profile_provider.dart';
 import '../state/cart_provider.dart';
 import 'package:agribridge/core/api/api_endpoint.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
+import 'package:agribridge/app/theme/theme_provider.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
 import 'package:agribridge/features/dashboard/presentation/pages/edit_profile_screen.dart';
@@ -40,22 +41,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return userName[0].toUpperCase();
   }
 
-  Widget _buildAvatarText(String userName) {
+  Widget _buildAvatarText(String userName, {required Color color}) {
     return Text(
       _initial(userName),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 48,
         fontWeight: FontWeight.bold,
-        color: Colors.green,
+        color: color,
       ),
     );
   }
 
-  Widget _buildProfileAvatar(String userName, String? remoteImageUrl) {
+  Widget _buildProfileAvatar(
+    String userName,
+    String? remoteImageUrl, {
+    required Color avatarBackgroundColor,
+    required Color avatarInitialColor,
+  }) {
     if (_profileImage != null) {
       return CircleAvatar(
         radius: 60,
-        backgroundColor: Colors.white,
+        backgroundColor: avatarBackgroundColor,
         backgroundImage: FileImage(_profileImage!),
       );
     }
@@ -63,7 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (remoteImageUrl != null && remoteImageUrl.isNotEmpty) {
       return CircleAvatar(
         radius: 60,
-        backgroundColor: Colors.white,
+        backgroundColor: avatarBackgroundColor,
         child: ClipOval(
           child: Image.network(
             remoteImageUrl,
@@ -71,7 +77,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             height: 120,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) =>
-                Center(child: _buildAvatarText(userName)),
+                Center(
+                  child: _buildAvatarText(
+                    userName,
+                    color: avatarInitialColor,
+                  ),
+                ),
           ),
         ),
       );
@@ -79,8 +90,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return CircleAvatar(
       radius: 60,
-      backgroundColor: Colors.white,
-      child: _buildAvatarText(userName),
+      backgroundColor: avatarBackgroundColor,
+      child: _buildAvatarText(userName, color: avatarInitialColor),
     );
   }
 
@@ -289,6 +300,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final userSessionService = ref.watch(userSessionServiceProvider);
     final authState = ref.watch(authViewModelProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = themeMode == ThemeMode.dark;
+    final headerGradientColors = isDarkMode
+        ? const [Color(0xFF1F6B47), Color(0xFF0A261C)]
+        : [Colors.green.shade400, Colors.green.shade800];
+    final userNameColor = Colors.white;
+    final userEmailColor = isDarkMode
+        ? Colors.white70
+        : Colors.white.withValues(alpha: 0.95);
+    final profileAvatarBackgroundColor = isDarkMode
+        ? const Color(0xFF223129)
+        : Colors.white;
+    final profileAvatarInitialColor = isDarkMode
+        ? Colors.greenAccent.shade100
+        : Colors.green;
+    final avatarBorderColor = isDarkMode ? Colors.white70 : Colors.white;
+    final avatarShadowColor = isDarkMode ? Colors.black54 : Colors.black26;
+    final cameraBadgeBackground = isDarkMode ? colorScheme.surface : Colors.white;
+    final cameraBadgeBorder = isDarkMode
+        ? Colors.greenAccent.shade100
+        : Colors.green;
+    final cameraBadgeIconColor = isDarkMode
+        ? Colors.greenAccent.shade100
+        : Colors.green;
     final userName = userSessionService.getCurrentUserFullName() ?? 'User';
     final userEmail = userSessionService.getCurrentUserEmail() ?? '';
     final sessionImagePath = userSessionService.getCurrentUserProfilePicture();
@@ -303,6 +340,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     : null));
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -312,7 +350,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.green.shade400, Colors.green.shade800],
+                    colors: headerGradientColors,
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -338,10 +376,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: const [
+                        border: Border.all(color: avatarBorderColor, width: 4),
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black26,
+                            color: avatarShadowColor,
                             blurRadius: 20,
                             offset: Offset(0, 10),
                           ),
@@ -349,7 +387,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       child: Stack(
                         children: [
-                          _buildProfileAvatar(userName, profileImageUrl),
+                          _buildProfileAvatar(
+                            userName,
+                            profileImageUrl,
+                            avatarBackgroundColor: profileAvatarBackgroundColor,
+                            avatarInitialColor: profileAvatarInitialColor,
+                          ),
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -358,17 +401,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: cameraBadgeBackground,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.green,
+                                    color: cameraBadgeBorder,
                                     width: 2,
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.camera_alt,
                                   size: 20,
-                                  color: Colors.green,
+                                  color: cameraBadgeIconColor,
                                 ),
                               ),
                             ),
@@ -377,20 +420,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Text(
                       userName,
-                      style: const TextStyle(
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        color: userNameColor,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       userEmail,
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: userEmailColor,
+                      ),
                     ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -412,6 +461,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       icon: Icons.security_rounded,
                       title: 'Privacy & Security',
                       onTap: _openSecurityPage,
+                    ),
+                    const SizedBox(height: 12),
+                    _MenuItem(
+                      icon: isDarkMode
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      title: 'Dark & Light Mode',
+                      showArrow: false,
+                      trailing: Switch(
+                        value: isDarkMode,
+                        activeThumbColor: Colors.green,
+                        activeTrackColor: Colors.green.withValues(alpha: 0.45),
+                        inactiveThumbColor: isDarkMode
+                            ? Colors.white70
+                            : null,
+                        inactiveTrackColor: isDarkMode
+                            ? Colors.white24
+                            : null,
+                        onChanged: (value) {
+                          ref
+                              .read(themeModeProvider.notifier)
+                              .setDarkMode(value);
+                        },
+                      ),
+                      onTap: () {
+                        ref.read(themeModeProvider.notifier).toggleThemeMode();
+                      },
                     ),
                     const SizedBox(height: 12),
                     _MenuItem(
@@ -490,6 +566,8 @@ class _MenuItem extends StatelessWidget {
   final VoidCallback onTap;
   final Color? iconColor;
   final Color? titleColor;
+  final Widget? trailing;
+  final bool showArrow;
 
   const _MenuItem({
     required this.icon,
@@ -497,14 +575,38 @@ class _MenuItem extends StatelessWidget {
     required this.onTap,
     this.iconColor,
     this.titleColor,
+    this.trailing,
+    this.showArrow = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final resolvedIconColor = iconColor ?? (isDarkMode ? Colors.white : Colors.black);
+    final resolvedTitleColor = titleColor ??
+        (isDarkMode ? Colors.white : Colors.lightGreen);
+    final iconTileTint = iconColor ?? (isDarkMode ? Colors.greenAccent : Colors.lime);
+    final trailingColor = isDarkMode ? Colors.white70 : Colors.lightGreen;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? colorScheme.surface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.03),
+        ),
+        boxShadow: [
+          if (!isDarkMode)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -519,10 +621,10 @@ class _MenuItem extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: (iconColor ?? Colors.lime).withValues(alpha: 0.1),
+                    color: iconTileTint.withValues(alpha: isDarkMode ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: iconColor ?? Colors.black, size: 24),
+                  child: Icon(icon, color: resolvedIconColor, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -531,15 +633,18 @@ class _MenuItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: titleColor ?? Colors.lightGreen,
+                      color: resolvedTitleColor,
                     ),
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: Colors.lightGreen,
-                ),
+                if (trailing != null)
+                  trailing!
+                else if (showArrow)
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: trailingColor,
+                  ),
               ],
             ),
           ),

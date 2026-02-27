@@ -117,11 +117,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          backgroundColor: const Color(0xFFF1F8E9),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2A2F2B)
+              : const Color(0xFFF1F8E9),
           content: Text(
             '${widget.name} x$_quantity added to cart',
-            style: const TextStyle(
-              color: Color(0xFF2E6E49),
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFE8ECE9)
+                  : const Color(0xFF2E6E49),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -157,8 +161,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final pageBackground = isDarkMode ? const Color(0xFF0F1412) : const Color(0xFF86C893);
+    final detailBackground = isDarkMode ? theme.colorScheme.surface : Colors.white;
+    final imagePanelBackground = isDarkMode
+        ? const Color(0xFF242B28)
+        : const Color(0xFFD8E2DA);
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF153E28);
+    final descriptionTitleColor = isDarkMode ? Colors.white : const Color(0xFF1E2E23);
+    final descriptionColor = isDarkMode ? Colors.white70 : const Color(0xFF5D6E65);
+    final backIconColor = isDarkMode ? Colors.white : Colors.black;
+    final totalPriceColor = isDarkMode ? Colors.white : Colors.black;
+    final ctaBg = isDarkMode ? const Color(0xFF81C784) : Colors.white;
+    final ctaFg = isDarkMode ? const Color(0xFF0F1412) : Colors.black;
+    final ctaDisabledBg = isDarkMode
+        ? const Color(0xFF3A4340)
+        : const Color(0xFFE6ECE7);
+    final ctaDisabledFg = isDarkMode
+        ? Colors.white60
+        : const Color(0xFF919E95);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF86C893),
+      backgroundColor: pageBackground,
       body: Column(
         children: [
           Expanded(
@@ -168,17 +193,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   top: 320,
                   child: Container(
                     width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(42),
-                    bottomRight: Radius.circular(42),
-                  ),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 85, 24, 20),
+                    decoration: BoxDecoration(
+                      color: detailBackground,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(42),
+                        bottomRight: Radius.circular(42),
+                      ),
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(24, 85, 24, 20),
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
                               minHeight: constraints.maxHeight - 44,
@@ -188,7 +213,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               children: [
                                 const SizedBox(height: 6),
                                 Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
                                       child: Column(
@@ -196,12 +221,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         children: [
                                           Text(
                                             widget.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 46,
+                                            style: TextStyle(
+                                              fontSize: 34,
                                               fontWeight: FontWeight.w800,
-                                              color: Color(0xFF153E28),
+                                              color: titleColor,
                                               height: 1.05,
                                             ),
                                           ),
@@ -245,20 +268,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 24),
-                                const Text(
+                                Text(
                                   'Product Description',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF1E2E23),
+                                    color: descriptionTitleColor,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
                                   widget.description,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF5D6E65),
+                                    color: descriptionColor,
                                     height: 1.45,
                                   ),
                                 ),
@@ -273,9 +296,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 Container(
                   width: double.infinity,
                   height: 360,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFD8E2DA),
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: imagePanelBackground,
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(56),
                       bottomRight: Radius.circular(56),
                     ),
@@ -288,10 +311,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back,
                               size: 30,
-                              color: Colors.black,
+                              color: backIconColor,
                             ),
                           ),
                         ),
@@ -315,8 +338,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF86C893),
+            decoration: BoxDecoration(
+              color: pageBackground,
             ),
             child: SafeArea(
               top: false,
@@ -325,10 +348,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Expanded(
                     child: Text(
                       'Rs ${_formatPrice(_totalPrice)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
-                        color: Colors.black,
+                        color: totalPriceColor,
                         height: 1.0,
                       ),
                     ),
@@ -337,10 +360,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ElevatedButton(
                     onPressed: _isAvailable ? _onAddToCart : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFFE6ECE7),
-                      foregroundColor: Colors.black,
-                      disabledForegroundColor: const Color(0xFF919E95),
+                      backgroundColor: ctaBg,
+                      disabledBackgroundColor: ctaDisabledBg,
+                      foregroundColor: ctaFg,
+                      disabledForegroundColor: ctaDisabledFg,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 36,
@@ -385,14 +408,16 @@ class _QtyStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAF8),
+        color: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF7FAF8),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFE1EAE3),
+          color: isDarkMode ? Colors.white12 : const Color(0xFFE1EAE3),
           width: 1,
         ),
       ),
@@ -408,10 +433,10 @@ class _QtyStepper extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$quantity',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF86A895),
+                color: isDarkMode ? Colors.white70 : const Color(0xFF86A895),
               ),
             ),
           ),
@@ -439,6 +464,8 @@ class _QtyIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
@@ -448,7 +475,9 @@ class _QtyIconButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 17,
-          color: enabled ? const Color(0xFF8EB8A0) : const Color(0xFFC6D6CB),
+          color: enabled
+              ? (isDarkMode ? const Color(0xFF9CD3B0) : const Color(0xFF8EB8A0))
+              : (isDarkMode ? Colors.white24 : const Color(0xFFC6D6CB)),
         ),
       ),
     );
@@ -466,10 +495,18 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final chipBg = primary
+        ? (isDarkMode ? const Color(0xFF2D3A33) : const Color(0xFFE3F4E8))
+        : (isDarkMode ? const Color(0xFF242B28) : const Color(0xFFEDF2EE));
+    final chipFg = primary
+        ? (isDarkMode ? const Color(0xFF8EE0A7) : const Color(0xFF4C9A61))
+        : (isDarkMode ? Colors.white70 : const Color(0xFF56695D));
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: primary ? const Color(0xFFE3F4E8) : const Color(0xFFEDF2EE),
+        color: chipBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -477,7 +514,7 @@ class _InfoChip extends StatelessWidget {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: primary ? const Color(0xFF4C9A61) : const Color(0xFF56695D),
+          color: chipFg,
         ),
       ),
     );
@@ -491,22 +528,24 @@ class _ImageFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      color: const Color(0xFFE7EFE9),
+      color: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFE7EFE9),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.image_not_supported_outlined,
               size: 34,
-              color: Color(0xFF739181),
+              color: isDarkMode ? Colors.white60 : const Color(0xFF739181),
             ),
             const SizedBox(height: 8),
             Text(
               name,
-              style: const TextStyle(
-                color: Color(0xFF5E776A),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : const Color(0xFF5E776A),
                 fontWeight: FontWeight.w600,
               ),
             ),

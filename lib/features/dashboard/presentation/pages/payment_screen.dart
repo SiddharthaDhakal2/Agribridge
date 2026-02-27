@@ -98,21 +98,30 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
   void _showInfoSnack(String message, {bool isWarning = false}) {
     if (!mounted) return;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: isWarning
-            ? const Color(0xFFFFF4E5)
-            : const Color(0xFFEFF8F1),
+            ? (isDarkMode
+                  ? const Color(0xFF3A2F1F)
+                  : const Color(0xFFFFF4E5))
+            : (isDarkMode
+                  ? const Color(0xFF243126)
+                  : const Color(0xFFEFF8F1)),
         duration: const Duration(seconds: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           message,
           style: TextStyle(
             color: isWarning
-                ? const Color(0xFF7A2E00)
-                : const Color(0xFF14532D),
+                ? (isDarkMode
+                      ? const Color(0xFFFFD9A8)
+                      : const Color(0xFF7A2E00))
+                : (isDarkMode
+                      ? const Color(0xFFB8F5C6)
+                      : const Color(0xFF14532D)),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -245,7 +254,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       if (!mounted) return;
       final didReachReturnUrl = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
-          builder: (_) => _KhaltiWebCheckoutScreen(paymentUri: paymentUri),
+          builder: (_) => _KhaltiWebCheckoutScreen(
+            paymentUri: paymentUri,
+            enableDarkMode: Theme.of(context).brightness == Brightness.dark,
+          ),
         ),
       );
 
@@ -359,16 +371,28 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF101828);
+    final headerColor = isDarkMode ? Colors.white : const Color(0xFF001739);
+    final subtitleColor = isDarkMode ? Colors.white70 : const Color(0xFF334155);
+    final summaryBg = isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF7F8FA);
+    final summaryBorder = isDarkMode ? Colors.white12 : const Color(0xFFD3D8E0);
+    final payButtonColor = isDarkMode ? const Color(0xFF81C784) : const Color(0xFF67C488);
+    final payButtonTextColor = isDarkMode ? const Color(0xFF0F1412) : Colors.white;
+    final backButtonBg = isDarkMode ? const Color(0xFF2A322D) : const Color(0xFFD4D7DD);
+    final backButtonFg = isDarkMode ? Colors.white : const Color(0xFF233349);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F5F7),
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           'Payment',
           style: TextStyle(
-            color: Color(0xFF101828),
+            color: titleColor,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -385,20 +409,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Payment',
                           style: TextStyle(
                             fontSize: 28,
-                            color: Color(0xFF001739),
+                            color: headerColor,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Review your payment details',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF334155),
+                            color: subtitleColor,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -406,9 +430,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F8FA),
+                            color: summaryBg,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFD3D8E0)),
+                            border: Border.all(color: summaryBorder),
                           ),
                           child: Column(
                             children: [
@@ -421,10 +445,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                 label: 'Delivery Fee',
                                 value: 'Rs ${_formatPrice(widget.deliveryFee)}',
                               ),
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.symmetric(vertical: 10),
                                 child: Divider(
-                                  color: Color(0xFF2A2A2A),
+                                  color: isDarkMode
+                                      ? Colors.white24
+                                      : const Color(0xFF2A2A2A),
                                   height: 1,
                                 ),
                               ),
@@ -444,11 +470,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Choose payment method',
                           style: TextStyle(
                             fontSize: 22,
-                            color: Color(0xFF001739),
+                            color: headerColor,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -489,10 +515,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                 ? null
                                 : _startPayment,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF67C488),
-                              disabledBackgroundColor: const Color(0xFFA7DDBB),
-                              foregroundColor: Colors.white,
-                              disabledForegroundColor: Colors.white,
+                              backgroundColor: payButtonColor,
+                              disabledBackgroundColor: isDarkMode
+                                  ? const Color(0xFF5A6B60)
+                                  : const Color(0xFFA7DDBB),
+                              foregroundColor: payButtonTextColor,
+                              disabledForegroundColor: isDarkMode
+                                  ? Colors.white60
+                                  : Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -500,13 +530,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                               ),
                             ),
                             child: _isSubmitting
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 18,
                                     width: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                        payButtonTextColor,
                                       ),
                                     ),
                                   )
@@ -528,9 +558,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                   ? null
                                   : () => _verifyPendingPayment(),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF14532D),
-                                side: const BorderSide(
-                                  color: Color(0xFF9AD7AE),
+                                foregroundColor: isDarkMode
+                                    ? const Color(0xFFB8F5C6)
+                                    : const Color(0xFF14532D),
+                                side: BorderSide(
+                                  color: isDarkMode
+                                      ? const Color(0xFF81C784)
+                                      : const Color(0xFF9AD7AE),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
@@ -562,8 +596,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           child: TextButton(
                             onPressed: () => Navigator.of(context).pop(),
                             style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFFD4D7DD),
-                              foregroundColor: const Color(0xFF233349),
+                              backgroundColor: backButtonBg,
+                              foregroundColor: backButtonFg,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -600,15 +634,21 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEFF2),
+        color: isDarkMode ? theme.colorScheme.surface : const Color(0xFFEDEFF2),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.white12 : Colors.transparent,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -632,6 +672,8 @@ class _PaymentAmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -639,7 +681,7 @@ class _PaymentAmountRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: const Color(0xFF0F172A),
+              color: isDarkMode ? Colors.white : const Color(0xFF0F172A),
               fontSize: highlight ? 18 : 16,
               fontWeight: highlight ? FontWeight.w800 : FontWeight.w500,
             ),
@@ -654,8 +696,10 @@ class _PaymentAmountRow extends StatelessWidget {
               value,
               style: TextStyle(
                 color: highlight
-                    ? const Color(0xFF00A63F)
-                    : const Color(0xFF0F172A),
+                    ? (isDarkMode
+                          ? const Color(0xFF8EE0A7)
+                          : const Color(0xFF00A63F))
+                    : (isDarkMode ? Colors.white : const Color(0xFF0F172A)),
                 fontSize: highlight ? 19 : 17,
                 fontWeight: FontWeight.w800,
               ),
@@ -686,6 +730,8 @@ class _PaymentMethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -693,10 +739,14 @@ class _PaymentMethodTile extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
+          color: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF7F8FA),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? const Color(0xFF67C488) : const Color(0xFFD3D8E0),
+            color: selected
+                ? (isDarkMode
+                      ? const Color(0xFF81C784)
+                      : const Color(0xFF67C488))
+                : (isDarkMode ? Colors.white12 : const Color(0xFFD3D8E0)),
             width: selected ? 1.4 : 1,
           ),
         ),
@@ -708,18 +758,18 @@ class _PaymentMethodTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
-                      color: Color(0xFF001739),
+                      color: isDarkMode ? Colors.white : const Color(0xFF001739),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF475467),
+                      color: isDarkMode ? Colors.white70 : const Color(0xFF475467),
                     ),
                   ),
                 ],
@@ -742,8 +792,12 @@ class _PaymentMethodTile extends StatelessWidget {
 
 class _KhaltiWebCheckoutScreen extends StatefulWidget {
   final Uri paymentUri;
+  final bool enableDarkMode;
 
-  const _KhaltiWebCheckoutScreen({required this.paymentUri});
+  const _KhaltiWebCheckoutScreen({
+    required this.paymentUri,
+    required this.enableDarkMode,
+  });
 
   @override
   State<_KhaltiWebCheckoutScreen> createState() =>
@@ -754,6 +808,28 @@ class _KhaltiWebCheckoutScreenState extends State<_KhaltiWebCheckoutScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   bool _returnHandled = false;
+
+  Future<void> _applyBestEffortDarkMode() async {
+    if (!widget.enableDarkMode) return;
+    try {
+      await _controller.runJavaScript('''
+(() => {
+  if (window.__agribridgeDarkModeApplied) return;
+  window.__agribridgeDarkModeApplied = true;
+
+  const style = document.createElement('style');
+  style.id = '__agribridge_dark_mode';
+  style.textContent = `
+    :root { color-scheme: dark !important; }
+    html, body { background: #0f1412 !important; color: #e8ece9 !important; }
+  `;
+  document.head.appendChild(style);
+})();
+''');
+    } catch (_) {
+      // Ignore failures from pages that block style/script injection.
+    }
+  }
 
   bool _isLikelyReturnUrl(String rawUrl) {
     final uri = Uri.tryParse(rawUrl);
@@ -807,6 +883,7 @@ class _KhaltiWebCheckoutScreenState extends State<_KhaltiWebCheckoutScreen> {
                 _isLoading = false;
               });
             }
+            unawaited(_applyBestEffortDarkMode());
           },
           onNavigationRequest: (request) {
             if (_isLikelyReturnUrl(request.url)) {
@@ -818,6 +895,8 @@ class _KhaltiWebCheckoutScreenState extends State<_KhaltiWebCheckoutScreen> {
         ),
       )
       ..loadRequest(widget.paymentUri);
+
+    unawaited(_applyBestEffortDarkMode());
   }
 
   @override

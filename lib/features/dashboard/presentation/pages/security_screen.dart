@@ -74,8 +74,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF13361A);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F7F3),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -87,18 +91,22 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1B5E20),
+                      backgroundColor: isDarkMode
+                          ? theme.colorScheme.surface
+                          : Colors.white,
+                      foregroundColor: isDarkMode
+                          ? const Color(0xFF81C784)
+                          : const Color(0xFF1B5E20),
                     ),
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     'Privacy & Security',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF13361A),
+                      color: titleColor,
                     ),
                   ),
                 ],
@@ -127,16 +135,23 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4ED),
+                  color: isDarkMode
+                      ? const Color(0xFF242B28)
+                      : const Color(0xFFE8F4ED),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDarkMode ? Colors.white12 : Colors.transparent,
+                  ),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
                       size: 18,
-                      color: Color(0xFF2E7D32),
+                      color: isDarkMode
+                          ? const Color(0xFF81C784)
+                          : const Color(0xFF2E7D32),
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -144,7 +159,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         'For sensitive actions, you may be asked to verify your credentials again.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF245C2F),
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF245C2F),
                           height: 1.35,
                         ),
                       ),
@@ -179,6 +196,9 @@ class _SecurityActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -186,14 +206,21 @@ class _SecurityActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDarkMode ? theme.colorScheme.surface : Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: danger
-                ? Border.all(color: const Color(0xFFF6D3D2), width: 1)
-                : null,
+                ? Border.all(
+                    color: isDarkMode
+                        ? const Color(0xFF6B3532)
+                        : const Color(0xFFF6D3D2),
+                    width: 1,
+                  )
+                : Border.all(
+                    color: isDarkMode ? Colors.white10 : Colors.transparent,
+                  ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: isDarkMode ? 0.22 : 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -222,15 +249,19 @@ class _SecurityActionCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: danger
-                            ? const Color(0xFF8A1C16)
-                            : const Color(0xFF193B24),
+                            ? const Color(0xFFB93A31)
+                            : (isDarkMode
+                                  ? Colors.white
+                                  : const Color(0xFF193B24)),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFF607166),
+                      style: TextStyle(
+                        color: isDarkMode
+                            ? Colors.white70
+                            : const Color(0xFF607166),
                         fontSize: 13,
                         height: 1.3,
                       ),
@@ -433,11 +464,15 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          backgroundColor: const Color(0xFFF1F8E9),
-          content: const Text(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2A2F2B)
+              : const Color(0xFFF1F8E9),
+          content: Text(
             'Password updated successfully',
             style: TextStyle(
-              color: Color(0xFF2E6E49),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFE8ECE9)
+                  : const Color(0xFF2E6E49),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -465,14 +500,23 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final sheetColor = isDarkMode ? theme.colorScheme.surface : Colors.white;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF193B24);
+    final subtitleColor = isDarkMode ? Colors.white70 : const Color(0xFF6A7B70);
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: sheetColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDarkMode ? Colors.white12 : Colors.transparent,
+          ),
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -490,24 +534,24 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
                     width: 46,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD9E2D9),
+                      color: isDarkMode ? Colors.white24 : const Color(0xFFD9E2D9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Change Password',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF193B24),
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Use a strong password with letters, numbers, and symbols.',
-                  style: TextStyle(color: Color(0xFF6A7B70), fontSize: 13),
+                  style: TextStyle(color: subtitleColor, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
                 _PasswordInput(
@@ -554,20 +598,27 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
                   child: FilledButton(
                     onPressed: _isSubmitting ? null : _submit,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E8E5A),
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF81C784)
+                          : const Color(0xFF1E8E5A),
+                      foregroundColor: isDarkMode
+                          ? const Color(0xFF0F1412)
+                          : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                                isDarkMode
+                                    ? const Color(0xFF0F1412)
+                                    : Colors.white,
                               ),
                             ),
                           )
@@ -608,6 +659,8 @@ class _PasswordInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return TextFormField(
       controller: controller,
       onChanged: onChanged,
@@ -615,21 +668,31 @@ class _PasswordInput extends StatelessWidget {
       obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF5D7062)),
+        labelStyle: TextStyle(
+          color: isDarkMode ? Colors.white70 : const Color(0xFF5D7062),
+        ),
         filled: true,
-        fillColor: const Color(0xFFF3F7F3),
+        fillColor: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF3F7F3),
         suffixIcon: IconButton(
           onPressed: onToggleVisibility,
           icon: Icon(
             obscureText
                 ? Icons.visibility_off_rounded
                 : Icons.visibility_rounded,
-            color: const Color(0xFF4F6255),
+            color: isDarkMode ? Colors.white70 : const Color(0xFF4F6255),
           ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.white24 : Colors.transparent,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.white24 : Colors.transparent,
+          ),
         ),
       ),
     );
@@ -657,6 +720,7 @@ class _DeleteAccountConfirmDialogState
   @override
   Widget build(BuildContext context) {
     final canDelete = _confirmController.text.trim().toUpperCase() == 'DELETE';
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -677,7 +741,9 @@ class _DeleteAccountConfirmDialogState
             decoration: InputDecoration(
               hintText: 'DELETE',
               filled: true,
-              fillColor: const Color(0xFFFBEAEA),
+              fillColor: isDarkMode
+                  ? const Color(0xFF3A2424)
+                  : const Color(0xFFFBEAEA),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,

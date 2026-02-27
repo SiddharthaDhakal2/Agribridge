@@ -97,14 +97,20 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
     final subtotal = _subtotal(cartItems);
     final activeDeliveryCharge = _activeDeliveryCharge(cartItems);
     final total = subtotal + activeDeliveryCharge;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final gradientTop = isDarkMode ? const Color(0xFF0F1412) : CartPalette.pageTop;
+    final gradientBottom = isDarkMode
+        ? const Color(0xFF161D19)
+        : CartPalette.pageBottom;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [CartPalette.pageTop, CartPalette.pageBottom],
+            colors: [gradientTop, gradientBottom],
           ),
         ),
         child: SafeArea(
@@ -130,6 +136,8 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
   }
 
   Widget _buildCartList(List<CartProduct> cartItems) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       itemCount: cartItems.length,
@@ -149,11 +157,15 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
               SnackBar(
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 3),
-                backgroundColor: const Color(0xFFFFF7CC),
+                backgroundColor: isDarkMode
+                    ? const Color(0xFF2A2F2B)
+                    : const Color(0xFFFFF7CC),
                 content: Text(
                   '${removedItem.name} removed from cart',
-                  style: const TextStyle(
-                    color: Color(0xFF2E6E49),
+                  style: TextStyle(
+                    color: isDarkMode
+                        ? const Color(0xFFE8ECE9)
+                        : const Color(0xFF2E6E49),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -162,7 +174,9 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
                 ),
                 action: SnackBarAction(
                   label: 'Undo',
-                  textColor: const Color(0xFF2E7D32),
+                  textColor: isDarkMode
+                      ? const Color(0xFF81C784)
+                      : const Color(0xFF2E7D32),
                   onPressed: () {
                     ref
                         .read(cartProvider.notifier)
@@ -219,6 +233,13 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF111827);
+    final subtitleColor = isDarkMode
+        ? Colors.white70
+        : const Color(0xFF4B5563);
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -227,37 +248,37 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: const Color(0xFFEDEFF2),
+              color: isDarkMode ? const Color(0xFF262D2A) : const Color(0xFFEDEFF2),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: isDarkMode ? 0.24 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.shopping_bag_outlined,
               size: 42,
-              color: Color(0xFF9FA6B2),
+              color: isDarkMode ? Colors.white60 : const Color(0xFF9FA6B2),
             ),
           ),
           const SizedBox(height: 22),
-          const Text(
+          Text(
             'Your cart is empty',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: titleColor,
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Add some fresh products to get started!',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF4B5563),
+              color: subtitleColor,
               fontSize: 18,
               height: 1.35,
             ),
@@ -266,8 +287,10 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
           ElevatedButton(
             onPressed: widget.onStartShopping ?? () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B34A),
-              foregroundColor: Colors.white,
+              backgroundColor: isDarkMode
+                  ? const Color(0xFF81C784)
+                  : const Color(0xFF10B34A),
+              foregroundColor: isDarkMode ? const Color(0xFF0F1412) : Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -291,18 +314,33 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
     required double total,
   }) {
     final bool isEmpty = cartItems.isEmpty;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? colorScheme.surface : Colors.white;
+    final borderColor = isDarkMode ? Colors.white12 : CartPalette.softBorder;
+    final softRowBg = isDarkMode ? const Color(0xFF242B28) : CartPalette.softGreen;
+    final totalLabelColor = isDarkMode ? Colors.white : CartPalette.darkGreen;
+    final totalValueColor = isDarkMode
+        ? const Color(0xFF8EE0A7)
+        : CartPalette.primaryGreen;
+    final buttonBg = isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final buttonFg = isDarkMode ? const Color(0xFF0F1412) : Colors.white;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: CartPalette.softBorder),
+          border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
-              color: CartPalette.primaryGreen.withOpacity(0.1),
+              color: (isDarkMode
+                      ? Colors.black
+                      : CartPalette.primaryGreen)
+                  .withValues(alpha: isDarkMode ? 0.25 : 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -314,13 +352,13 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
-                color: CartPalette.softGreen,
+                color: softRowBg,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${cartItems.length} item${cartItems.length > 1 ? 's' : ''} selected',
-                style: const TextStyle(
-                  color: CartPalette.darkGreen,
+                style: TextStyle(
+                  color: totalLabelColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -335,19 +373,19 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
               label: 'Delivery Charge',
               value: 'Rs ${_formatPrice(activeDeliveryCharge.toDouble())}',
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(color: CartPalette.softBorder, height: 1),
+              child: Divider(color: borderColor, height: 1),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Total',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: CartPalette.darkGreen,
+                    color: totalLabelColor,
                   ),
                 ),
                 AnimatedSwitcher(
@@ -355,10 +393,10 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
                   child: Text(
                     'Rs ${_formatPrice(total)}',
                     key: ValueKey(total),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: CartPalette.primaryGreen,
+                      color: totalValueColor,
                     ),
                   ),
                 ),
@@ -378,17 +416,25 @@ class _CartScreenBodyState extends ConsumerState<CartScreenBody> {
                         );
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  disabledBackgroundColor: const Color(0xFFAED7B5),
-                  foregroundColor: Colors.white,
-                  disabledForegroundColor: const Color(0xFF4D6B53),
+                  backgroundColor: buttonBg,
+                  disabledBackgroundColor: isDarkMode
+                      ? const Color(0xFF5A6B60)
+                      : const Color(0xFFAED7B5),
+                  foregroundColor: buttonFg,
+                  disabledForegroundColor: isDarkMode
+                      ? Colors.white60
+                      : const Color(0xFF4D6B53),
                   elevation: isEmpty ? 0 : 2,
-                  shadowColor: const Color(0xFF2E7D32).withOpacity(0.35),
+                  shadowColor: buttonBg.withValues(alpha: isDarkMode ? 0.12 : 0.35),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   side: BorderSide(
                     color: isEmpty
-                        ? const Color(0xFFBFDCC7)
-                        : const Color(0xFF1B5E20),
+                        ? (isDarkMode
+                              ? Colors.white24
+                              : const Color(0xFFBFDCC7))
+                        : (isDarkMode
+                              ? const Color(0xFF81C784)
+                              : const Color(0xFF1B5E20)),
                     width: 1.1,
                   ),
                   shape: RoundedRectangleBorder(
@@ -463,33 +509,50 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
     required String hintText,
     bool readOnly = false,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return InputDecoration(
       hintText: hintText,
       hintStyle: TextStyle(
-        color: readOnly ? const Color(0xFF667085) : const Color(0xFF98A2B3),
+        color: isDarkMode
+            ? (readOnly ? Colors.white60 : Colors.white54)
+            : (readOnly ? const Color(0xFF667085) : const Color(0xFF98A2B3)),
       ),
       filled: true,
-      fillColor: const Color(0xFFF1F3F6),
+      fillColor: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF1F3F6),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD0D5DD)),
+        borderSide: BorderSide(
+          color: isDarkMode ? Colors.white24 : const Color(0xFFD0D5DD),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.2),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+          width: 1.2,
+        ),
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD0D5DD)),
+        borderSide: BorderSide(
+          color: isDarkMode ? Colors.white24 : const Color(0xFFD0D5DD),
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD92D20), width: 1.1),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFFF2B8B5) : const Color(0xFFD92D20),
+          width: 1.1,
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD92D20), width: 1.2),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFFF2B8B5) : const Color(0xFFD92D20),
+          width: 1.2,
+        ),
       ),
     );
   }
@@ -520,6 +583,16 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF101828);
+    final labelColor = isDarkMode ? Colors.white70 : const Color(0xFF344054);
+    final valueColor = isDarkMode ? Colors.white : const Color(0xFF475467);
+    final panelColor = isDarkMode ? const Color(0xFF161D19) : const Color(0xFFF5F6F8);
+    final summaryBgColor = isDarkMode
+        ? const Color(0xFF242B28)
+        : const Color(0xFFF1F3F6);
+    final summaryBorder = isDarkMode ? Colors.white24 : const Color(0xFFD0D5DD);
 
     return SafeArea(
       top: false,
@@ -533,8 +606,11 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
           ),
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F6F8),
+            color: panelColor,
             borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDarkMode ? Colors.white12 : Colors.transparent,
+            ),
           ),
           child: SingleChildScrollView(
             child: Form(
@@ -545,26 +621,31 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Delivery Information',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF101828),
+                          color: titleColor,
                         ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close, color: Color(0xFF667085)),
+                        icon: Icon(
+                          Icons.close,
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF667085),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Full Name (from profile)',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF344054),
+                      color: labelColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -572,8 +653,8 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                   TextFormField(
                     initialValue: widget.fullName,
                     enabled: false,
-                    style: const TextStyle(
-                      color: Color(0xFF475467),
+                    style: TextStyle(
+                      color: valueColor,
                       fontSize: 18,
                     ),
                     decoration: _inputDecoration(
@@ -582,11 +663,11 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Email Address (from profile)',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF344054),
+                      color: labelColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -594,8 +675,8 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                   TextFormField(
                     initialValue: widget.email,
                     enabled: false,
-                    style: const TextStyle(
-                      color: Color(0xFF475467),
+                    style: TextStyle(
+                      color: valueColor,
                       fontSize: 18,
                     ),
                     decoration: _inputDecoration(
@@ -604,11 +685,11 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Phone Number *',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF344054),
+                      color: labelColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -636,11 +717,11 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     },
                   ),
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Delivery Address *',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF344054),
+                      color: labelColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -667,9 +748,9 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F3F6),
+                      color: summaryBgColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFD0D5DD)),
+                      border: Border.all(color: summaryBorder),
                     ),
                     child: Column(
                       children: [
@@ -682,9 +763,9 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                           label: 'Delivery Fee',
                           value: 'Rs ${widget.formatPrice(widget.deliveryFee)}',
                         ),
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Divider(color: Color(0xFFD0D5DD), height: 1),
+                          child: Divider(color: summaryBorder, height: 1),
                         ),
                         _SummaryRow(
                           label: 'Total',
@@ -699,22 +780,30 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF05A43D),
-                        disabledBackgroundColor: const Color(0xFF9ED9AF),
-                        foregroundColor: Colors.white,
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF81C784)
+                            : const Color(0xFF05A43D),
+                        disabledBackgroundColor: isDarkMode
+                            ? const Color(0xFF5A6B60)
+                            : const Color(0xFF9ED9AF),
+                        foregroundColor: isDarkMode
+                            ? const Color(0xFF0F1412)
+                            : Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  isDarkMode
+                                      ? const Color(0xFF0F1412)
+                                      : Colors.white,
                                 ),
                               ),
                             )
@@ -733,8 +822,12 @@ class _DeliveryInformationSheetState extends State<_DeliveryInformationSheet> {
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFD0D5DD),
-                        foregroundColor: const Color(0xFF344054),
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF2A322D)
+                            : const Color(0xFFD0D5DD),
+                        foregroundColor: isDarkMode
+                            ? Colors.white
+                            : const Color(0xFF344054),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -773,32 +866,34 @@ class CartItemCard extends StatelessWidget {
     required this.formatPrice,
   });
 
-  Widget _buildImageFallback() {
+  Widget _buildImageFallback(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      color: CartPalette.softGreen,
-      child: const Icon(
+      color: isDarkMode ? const Color(0xFF242B28) : CartPalette.softGreen,
+      child: Icon(
         Icons.image_not_supported_outlined,
-        color: CartPalette.darkGreen,
+        color: isDarkMode ? Colors.white60 : CartPalette.darkGreen,
       ),
     );
   }
 
-  Widget _buildItemImage() {
+  Widget _buildItemImage(BuildContext context) {
     final image = item.image.trim();
-    if (image.isEmpty) return _buildImageFallback();
+    if (image.isEmpty) return _buildImageFallback(context);
 
     if (image.toLowerCase().startsWith('http')) {
       return Image.network(
         image,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(context),
       );
     }
 
     return Image.asset(
       image,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+      errorBuilder: (context, error, stackTrace) => _buildImageFallback(context),
     );
   }
 
@@ -806,17 +901,30 @@ class CartItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double itemTotal = item.price * item.quantity;
     final String itemUnit = item.unit.trim().isEmpty ? 'Kg' : item.unit.trim();
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final cardColor = isDarkMode ? theme.colorScheme.surface : Colors.white;
+    final borderColor = isDarkMode ? Colors.white12 : CartPalette.softBorder;
+    final titleColor = isDarkMode ? Colors.white : CartPalette.darkGreen;
+    final itemPriceChipBg = isDarkMode
+        ? const Color(0xFF242B28)
+        : CartPalette.softGreen;
+    final itemPriceColor = isDarkMode
+        ? const Color(0xFF8EE0A7)
+        : CartPalette.primaryGreen;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CartPalette.softBorder),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: CartPalette.primaryGreen.withOpacity(0.07),
+            color: (isDarkMode ? Colors.black : CartPalette.primaryGreen).withValues(
+              alpha: isDarkMode ? 0.26 : 0.07,
+            ),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -826,7 +934,7 @@ class CartItemCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: SizedBox(width: 76, height: 76, child: _buildItemImage()),
+            child: SizedBox(width: 76, height: 76, child: _buildItemImage(context)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -835,10 +943,10 @@ class CartItemCard extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: CartPalette.darkGreen,
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -848,13 +956,13 @@ class CartItemCard extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: CartPalette.softGreen,
+                    color: itemPriceChipBg,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     'Rs ${formatPrice(item.price)}/$itemUnit',
-                    style: const TextStyle(
-                      color: CartPalette.primaryGreen,
+                    style: TextStyle(
+                      color: itemPriceColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -862,9 +970,9 @@ class CartItemCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Total: Rs ${formatPrice(itemTotal)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: CartPalette.darkGreen,
+                    color: titleColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -873,9 +981,9 @@ class CartItemCard extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: CartPalette.pageTop,
+              color: isDarkMode ? const Color(0xFF242B28) : CartPalette.pageTop,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CartPalette.softBorder),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -886,9 +994,9 @@ class CartItemCard extends StatelessWidget {
                   child: Center(
                     child: Text(
                       '${item.quantity}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: CartPalette.darkGreen,
+                        color: titleColor,
                       ),
                     ),
                   ),
@@ -911,12 +1019,18 @@ class _QuantityActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 18, color: CartPalette.primaryGreen),
+        child: Icon(
+          icon,
+          size: 18,
+          color: isDarkMode ? const Color(0xFF8EE0A7) : CartPalette.primaryGreen,
+        ),
       ),
     );
   }
@@ -930,22 +1044,26 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDarkMode ? Colors.white70 : CartPalette.textMuted;
+    final valueColor = isDarkMode ? Colors.white : CartPalette.darkGreen;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: CartPalette.textMuted,
+            color: labelColor,
             fontWeight: FontWeight.w500,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: CartPalette.darkGreen,
+            color: valueColor,
             fontWeight: FontWeight.w600,
           ),
         ),
