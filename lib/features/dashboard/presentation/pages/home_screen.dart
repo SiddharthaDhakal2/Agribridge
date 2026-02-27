@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:agribridge/core/api/api_endpoint.dart';
 
 import '../state/home_provider.dart';
 import 'product_detail_screen.dart';
@@ -116,6 +117,15 @@ class HomeScreen extends ConsumerWidget {
                       if (products.isEmpty) {
                         return const Center(child: Text('No products available'));
                       }
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      final isCompactCardLayout = screenWidth <= 430;
+                      final gridChildAspectRatio =
+                          isCompactCardLayout ? 0.76 : 0.86;
+                      final cardContentPadding = isCompactCardLayout ? 6.0 : 8.0;
+                      final productNameFontSize = isCompactCardLayout ? 14.0 : 15.0;
+                      final productPriceFontSize = isCompactCardLayout ? 15.0 : 16.0;
+                      final addButtonSize = isCompactCardLayout ? 30.0 : 32.0;
+                      final productNameMaxLines = isCompactCardLayout ? 1 : 2;
                       final latestFirst = products.reversed.toList();
                       final filtered = selectedIndex == 0
                           ? latestFirst
@@ -130,143 +140,169 @@ class HomeScreen extends ConsumerWidget {
                       }
                       return GridView.builder(
                         itemCount: filtered.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.86,
-                            ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: gridChildAspectRatio,
+                        ),
                         itemBuilder: (context, index) {
                           final product = filtered[index];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: cardBackground,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isDarkMode
-                                    ? Colors.white10
-                                    : Colors.black.withValues(alpha: 0.04),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: cardShadow,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(12),
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              final cardImageHeight =
+                                  constraints.maxHeight *
+                                  (isCompactCardLayout ? 0.56 : 0.60);
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: cardBackground,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDarkMode
+                                        ? Colors.white10
+                                        : Colors.black.withValues(alpha: 0.04),
                                   ),
-                                  child: product.image.isNotEmpty
-                                      ? Image.network(
-                                          product.image.startsWith('http')
-                                              ? product.image
-                                              : 'http://10.0.2.2:5000${product.image}',
-                                          height: 120,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          height: 120,
-                                          width: double.infinity,
-                                          color: isDarkMode
-                                              ? Colors.white10
-                                              : Colors.grey.shade200,
-                                          child: Icon(
-                                            Icons.image,
-                                            size: 40,
-                                            color: isDarkMode
-                                                ? Colors.white54
-                                                : Colors.black45,
-                                          ),
-                                        ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: cardShadow,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              product.name,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                                color: itemTitleColor,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(12),
+                                      ),
+                                      child: product.image.isNotEmpty
+                                          ? Image.network(
+                                              ApiEndpoints.resolveMediaUrl(
+                                                product.image,
                                               ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
+                                              height: cardImageHeight,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
+                                              height: cardImageHeight,
+                                              width: double.infinity,
+                                              color: isDarkMode
+                                                  ? Colors.white10
+                                                  : Colors.grey.shade200,
+                                              child: Icon(
+                                                Icons.image,
+                                                size: 40,
+                                                color: isDarkMode
+                                                    ? Colors.white54
+                                                    : Colors.black45,
+                                              ),
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Rs ${product.price}/Kg',
-                                              style: TextStyle(
-                                                color: priceColor,
-                                                fontWeight: FontWeight.w600,
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(
+                                          cardContentPadding,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    product.name,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize:
+                                                          productNameFontSize,
+                                                      color: itemTitleColor,
+                                                    ),
+                                                    maxLines:
+                                                        productNameMaxLines,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  SizedBox(
+                                                    height: isCompactCardLayout
+                                                        ? 2
+                                                        : 4,
+                                                  ),
+                                                  Text(
+                                                    'Rs ${product.price}/Kg',
+                                                    style: TextStyle(
+                                                      color: priceColor,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize:
+                                                          productPriceFontSize,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                right: 8,
+                                              ),
+                                              width: addButtonSize,
+                                              height: addButtonSize,
+                                              decoration: BoxDecoration(
+                                                color: isDarkMode
+                                                    ? const Color(0xFF2F8F4B)
+                                                    : greenColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.add,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) => ProductDetailScreen(
+                                                        productId: product.id,
+                                                        imageUrl:
+                                                            ApiEndpoints.resolveMediaUrl(
+                                                              product.image,
+                                                            ),
+                                                        name: product.name,
+                                                        description:
+                                                            product.description,
+                                                        price: product.price,
+                                                        unit: product.unit,
+                                                        stockQuantity:
+                                                            product.quantity,
+                                                        availability:
+                                                            product.availability,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                padding: EdgeInsets.zero,
+                                                splashRadius: 20,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: isDarkMode
-                                              ? const Color(0xFF2F8F4B)
-                                              : greenColor,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.add,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) => ProductDetailScreen(
-                                                  productId: product.id,
-                                                  imageUrl:
-                                                      product.image.startsWith(
-                                                        'http',
-                                                      )
-                                                      ? product.image
-                                                      : 'http://10.0.2.2:5000${product.image}',
-                                                  name: product.name,
-                                                  description: product.description,
-                                                  price: product.price,
-                                                  unit: product.unit,
-                                                  stockQuantity: product.quantity,
-                                                  availability:
-                                                      product.availability,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          padding: EdgeInsets.zero,
-                                          splashRadius: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                         },
                       );
