@@ -14,12 +14,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> saveProfileImage(String imagePath, String customerId) async {
     final uploadedImagePath =
         await remoteDataSource.uploadProfileImage(imagePath, customerId);
-    await localDataSource.saveProfileImage(uploadedImagePath ?? imagePath);
+    await localDataSource.saveProfileImage(customerId, uploadedImagePath ?? imagePath);
   }
 
   @override
-  Future<ProfileEntity?> getProfile() async {
-    final profile = await localDataSource.getProfile();
+  Future<ProfileEntity?> getProfile(String customerId) async {
+    final profile = await localDataSource.getProfile(customerId);
     if (profile == null) return null;
     return ProfileEntity(
       name: profile.name,

@@ -199,7 +199,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     String? imagePath = sessionImagePath;
 
     if (customerId != null) {
-      await ref.read(profileViewModelProvider.notifier).loadProfile();
+      await ref.read(profileViewModelProvider.notifier).loadProfile(customerId);
       final profile = ref.read(profileViewModelProvider).profile;
       final profileImagePath = profile?.imagePath;
       if (_isRemoteImagePath(profileImagePath)) {
