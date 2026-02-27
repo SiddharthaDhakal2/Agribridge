@@ -6,6 +6,7 @@ import '../state/home_provider.dart';
 import 'product_detail_screen.dart';
 
 final selectedCategoryProvider = StateProvider<int>((ref) => 0);
+final searchQueryProvider = StateProvider<String>((ref) => '');
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
     final productsAsync = ref.watch(homeProvider);
     final categories = ['All', 'Fruits', 'Grains', 'Vegetables'];
     final selectedIndex = ref.watch(selectedCategoryProvider);
+    final searchQuery = ref.watch(searchQueryProvider).trim().toLowerCase();
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -127,15 +129,22 @@ class HomeScreen extends ConsumerWidget {
                       final addButtonSize = isCompactCardLayout ? 30.0 : 32.0;
                       final productNameMaxLines = isCompactCardLayout ? 1 : 2;
                       final latestFirst = products.reversed.toList();
-                      final filtered = selectedIndex == 0
+                      final categoryFiltered = selectedIndex == 0
                           ? latestFirst
                           : latestFirst.where((p) {
                               final cat = categories[selectedIndex].toLowerCase();
                               return p.category.toLowerCase() == cat;
                             }).toList();
+                      final filtered = searchQuery.isEmpty
+                          ? categoryFiltered
+                          : categoryFiltered.where((p) {
+                              return p.name.toLowerCase().contains(searchQuery) ||
+                                  p.category.toLowerCase().contains(searchQuery) ||
+                                  p.description.toLowerCase().contains(searchQuery);
+                            }).toList();
                       if (filtered.isEmpty) {
                         return const Center(
-                          child: Text('No products in this category'),
+                          child: Text('No products found'),
                         );
                       }
                       return GridView.builder(
@@ -336,6 +345,9 @@ class HomeScreen extends ConsumerWidget {
               ),
               child: TextField(
                 style: TextStyle(color: colorScheme.onSurface),
+                onChanged: (value) {
+                  ref.read(searchQueryProvider.notifier).state = value;
+                },
                 decoration: InputDecoration(
                   hintText: 'Search products...',
                   hintStyle: TextStyle(
