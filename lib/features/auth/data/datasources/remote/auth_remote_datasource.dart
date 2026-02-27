@@ -94,6 +94,12 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
         throw Exception('Invalid email or password');
       } else if (e.response?.statusCode == 404) {
         throw Exception('User not found');
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw Exception(
+          'Cannot reach server at ${ApiEndpoints.serverUrl}. Check Wi-Fi and firewall (port 5000).',
+        );
       }
       rethrow;
     }
@@ -101,28 +107,39 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
   @override
   Future<AuthApiModel> register(AuthApiModel user) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.customerRegister,
-      data: user.toJson(),
-    );
-
-    if (response.data['success'] == true) {
-      final data = response.data['data'] as Map<String, dynamic>;
-      final registeredUser = AuthApiModel.fromJson(data);
-
-      // Save user data locally for session
-      await _userSessionService.saveUserSession(
-        userId: registeredUser.id!,
-        email: registeredUser.email,
-        fullName: registeredUser.fullName,
-        phoneNumber: (data['phone'] as String?)?.trim(),
-        address: (data['address'] as String?)?.trim(),
-        username: registeredUser.username,
-        profilePicture: registeredUser.profilePicture ?? '',
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.customerRegister,
+        data: user.toJson(),
       );
-      return registeredUser;
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        final registeredUser = AuthApiModel.fromJson(data);
+
+        // Save user data locally for session
+        await _userSessionService.saveUserSession(
+          userId: registeredUser.id!,
+          email: registeredUser.email,
+          fullName: registeredUser.fullName,
+          phoneNumber: (data['phone'] as String?)?.trim(),
+          address: (data['address'] as String?)?.trim(),
+          username: registeredUser.username,
+          profilePicture: registeredUser.profilePicture ?? '',
+        );
+        return registeredUser;
+      }
+      return user;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw Exception(
+          'Cannot reach server at ${ApiEndpoints.serverUrl}. Check Wi-Fi and firewall (port 5000).',
+        );
+      }
+      rethrow;
     }
-    return user;
   }
 
   @override

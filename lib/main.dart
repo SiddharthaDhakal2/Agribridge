@@ -1,4 +1,5 @@
 import 'package:agribridge/core/services/storage/user_session_service.dart';
+import 'package:agribridge/core/api/api_endpoint.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agribridge/app/app.dart';
@@ -9,6 +10,7 @@ import 'package:agribridge/features/dashboard/data/models/profile_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiEndpoints.initialize();
 
   // Register only ProfileModelAdapter here
   Hive.registerAdapter(ProfileModelAdapter());

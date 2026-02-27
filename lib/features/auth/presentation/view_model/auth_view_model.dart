@@ -35,23 +35,30 @@ class AuthViewModel extends StateNotifier<AuthState> {
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
 
-    final params = LoginUsecaseParams(username: email, password: password);
-    final result = await _loginUsecase.call(params);
+    try {
+      final params = LoginUsecaseParams(username: email, password: password);
+      final result = await _loginUsecase.call(params);
 
-    result.fold(
-      (failure) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: failure.message,
-        );
-      },
-      (authEntity) {
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          authEntity: authEntity,
-        );
-      },
-    );
+      result.fold(
+        (failure) {
+          state = state.copyWith(
+            status: AuthStatus.error,
+            errorMessage: failure.message,
+          );
+        },
+        (authEntity) {
+          state = state.copyWith(
+            status: AuthStatus.authenticated,
+            authEntity: authEntity,
+          );
+        },
+      );
+    } catch (_) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Unable to complete login. Please try again.',
+      );
+    }
   }
 
   // Register method
@@ -62,34 +69,40 @@ class AuthViewModel extends StateNotifier<AuthState> {
     required String password,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final params = RegisterUsecaseParams(
+        fullName: fullName,
+        email: email,
+        username: username,
+        password: password,
+      );
 
-    final params = RegisterUsecaseParams(
-      fullName: fullName,
-      email: email,
-      username: username,
-      password: password,
-    );
+      final result = await _registerUsecase.call(params);
 
-    final result = await _registerUsecase.call(params);
-
-    result.fold(
-      (failure) {
-        state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: failure.message,
-        );
-      },
-      (success) {
-        if (success) {
-          state = state.copyWith(status: AuthStatus.registered);
-        } else {
+      result.fold(
+        (failure) {
           state = state.copyWith(
             status: AuthStatus.error,
-            errorMessage: 'Registration failed',
+            errorMessage: failure.message,
           );
-        }
-      },
-    );
+        },
+        (success) {
+          if (success) {
+            state = state.copyWith(status: AuthStatus.registered);
+          } else {
+            state = state.copyWith(
+              status: AuthStatus.error,
+              errorMessage: 'Registration failed',
+            );
+          }
+        },
+      );
+    } catch (_) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Unable to complete registration. Please try again.',
+      );
+    }
   }
 
   // Reset error state

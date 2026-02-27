@@ -837,6 +837,7 @@ class _KhaltiWebCheckoutScreenState extends State<_KhaltiWebCheckoutScreen> {
 
     final host = uri.host.toLowerCase();
     final scheme = uri.scheme.toLowerCase();
+    final backendHost = Uri.tryParse(ApiEndpoints.serverUrl)?.host.toLowerCase();
 
     final hasPaymentQuery =
         uri.queryParameters.containsKey('pidx') ||
@@ -844,13 +845,16 @@ class _KhaltiWebCheckoutScreenState extends State<_KhaltiWebCheckoutScreen> {
         uri.queryParameters.containsKey('orderId');
 
     final isKhaltiDomain = host.contains('khalti.com');
-    final isLocalhostHost =
-        host == 'localhost' || host == '127.0.0.1' || host == '10.0.2.2';
+    final isBackendHost =
+        host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '10.0.2.2' ||
+        (backendHost != null && host == backendHost);
     final isCustomScheme = scheme != 'http' && scheme != 'https';
 
     if (isCustomScheme) return true;
     if (!isKhaltiDomain && hasPaymentQuery) return true;
-    if (isLocalhostHost && (uri.path.contains('/payment') || hasPaymentQuery)) {
+    if (isBackendHost && (uri.path.contains('/payment') || hasPaymentQuery)) {
       return true;
     }
     return false;

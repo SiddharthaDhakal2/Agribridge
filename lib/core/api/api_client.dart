@@ -13,7 +13,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     userSessionService: userSessionService,
     onUnauthorized: () {
       // Example: redirect to login or show dialog
-      // You can call navigation logic here
       debugPrint('Session expired! Redirect to login.');
     },
   );
@@ -56,6 +55,14 @@ class ApiClient {
           Duration(seconds: 4),
         ],
         retryEvaluator: (error, attempt) {
+          final path = error.requestOptions.path;
+          final isAuthRequest =
+              path.contains(ApiEndpoints.customerLogin) ||
+              path.contains(ApiEndpoints.customerRegister);
+          if (isAuthRequest) {
+            // Fail fast for login/register so UI doesn't hang for retry cycles.
+            return false;
+          }
           return error.type == DioExceptionType.connectionTimeout ||
               error.type == DioExceptionType.sendTimeout ||
               error.type == DioExceptionType.receiveTimeout ||

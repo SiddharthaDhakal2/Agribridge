@@ -1,17 +1,146 @@
-// import 'dart:io';
-// import 'package:flutter/foundation.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // Base URL - change this for production
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
-  //static const String baseUrl = 'http://localhost:3000/agribridge';
-  //static const String baseUrl = 'http://192.168.96.1:3000/agribridge'; // Replace xxx with your IP
-  // For Android Emulator use: 'http://10.0.2.2:3000/agribridge'
-  // For iOS Simulator use: 'http://localhost:3000/agribridge'
-  // For Physical Device use your computer's IP: 'http://192.168.x.x:3000/agribridge'
-  // For Windows Desktop use: 'http://localhost:3000/agribridge'
+  // Override with --dart-define=API_BASE_URL=http://<host>:5000/api
+  static const String _baseUrlFromEnv = String.fromEnvironment('API_BASE_URL');
+  // Used for real Android/iOS devices when API_BASE_URL is not provided.
+  static const String _physicalServerUrlFromEnv = String.fromEnvironment(
+    'API_PHYSICAL_SERVER_URL',
+  );
+  // Use your LAN/Wi-Fi adapter IP, not virtual adapter IPs (like Hyper-V/vEthernet).
+  static const String _defaultPhysicalServerUrl = 'http://192.168.1.11:5000';
+
+  static bool _isInitialized = false;
+  static String? _resolvedServerUrl;
+
+  static Future<void> initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+
+    if (_baseUrlFromEnv.trim().isNotEmpty) {
+      _resolvedServerUrl = _extractServerUrl(_baseUrlFromEnv.trim());
+      return;
+    }
+
+    if (kIsWeb) {
+      _resolvedServerUrl = 'http://localhost:5000';
+      return;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        _resolvedServerUrl = await _resolveAndroidServerUrl();
+        return;
+      case TargetPlatform.iOS:
+        _resolvedServerUrl = await _resolveIosServerUrl();
+        return;
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        _resolvedServerUrl = 'http://localhost:5000';
+        return;
+      default:
+        _resolvedServerUrl = 'http://localhost:5000';
+    }
+  }
+
+  // API base URL (must include /api).
+  static String get baseUrl {
+    if (_baseUrlFromEnv.trim().isNotEmpty) {
+      return _normalizeBaseUrl(_baseUrlFromEnv);
+    }
+    return '$serverUrl/api';
+  }
+
+  // Backend origin without /api, useful for image/media paths.
+  static String get serverUrl {
+    if (_baseUrlFromEnv.trim().isNotEmpty) {
+      final envServerUrl = _extractServerUrl(_baseUrlFromEnv.trim());
+      if (envServerUrl != null) {
+        return envServerUrl;
+      }
+    }
+    return _resolvedServerUrl ?? _fallbackServerUrl();
+  }
+
+  static String _fallbackServerUrl() {
+    if (kIsWeb) {
+      return 'http://localhost:5000';
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        // Android emulator loopback alias.
+        // For a physical device, pass your LAN host with --dart-define.
+        return 'http://10.0.2.2:5000';
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return 'http://localhost:5000';
+      default:
+        return 'http://localhost:5000';
+    }
+  }
+
+  static Future<String> _resolveAndroidServerUrl() async {
+    try {
+      final info = await DeviceInfoPlugin().androidInfo;
+      if (info.isPhysicalDevice) {
+        if (kDebugMode) {
+          // Physical Android debug via USB + `adb reverse tcp:5000 tcp:5000`.
+          return 'http://127.0.0.1:5000';
+        }
+        return _physicalServerUrl;
+      }
+    } catch (_) {}
+
+    // Android emulator loopback alias.
+    return 'http://10.0.2.2:5000';
+  }
+
+  static Future<String> _resolveIosServerUrl() async {
+    try {
+      final info = await DeviceInfoPlugin().iosInfo;
+      if (info.isPhysicalDevice) {
+        return _physicalServerUrl;
+      }
+    } catch (_) {}
+
+    // iOS simulator can use localhost.
+    return 'http://localhost:5000';
+  }
+
+  static String get _physicalServerUrl {
+    final envValue = _physicalServerUrlFromEnv.trim();
+    if (envValue.isNotEmpty) {
+      return _normalizeUrl(envValue);
+    }
+    return _defaultPhysicalServerUrl;
+  }
+
+  static String? _extractServerUrl(String rawUrl) {
+    final uri = Uri.tryParse(rawUrl.trim());
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return null;
+    }
+
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    return '${uri.scheme}://${uri.host}$port';
+  }
+
+  static String _normalizeUrl(String rawUrl) {
+    return rawUrl.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static String _normalizeBaseUrl(String rawUrl) {
+    final trimmed = _normalizeUrl(rawUrl);
+    if (trimmed.endsWith('/api')) return trimmed;
+    return '$trimmed/api';
+  }
 
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
@@ -54,10 +183,6 @@ class ApiEndpoints {
     } else if (trimmed.startsWith('uploads/')) {
       trimmed = '/$trimmed';
     }
-
-    final uri = Uri.parse(baseUrl);
-    final port = uri.hasPort ? ':${uri.port}' : '';
-    final serverUrl = '${uri.scheme}://${uri.host}$port';
 
     if (trimmed.startsWith('/')) {
       return '$serverUrl$trimmed';

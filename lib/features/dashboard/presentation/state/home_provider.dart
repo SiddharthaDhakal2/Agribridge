@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:agribridge/core/api/api_endpoint.dart';
 import '../../domain/entities/home_entity.dart';
 import '../../domain/usecases/home_usecase.dart';
 import '../../../dashboard/data/datasources/remote/home_remote_datasource.dart';
@@ -6,7 +7,7 @@ import '../../../dashboard/data/datasources/local/home_local_datasource.dart';
 import '../../../dashboard/data/repositories/home_repository_impl.dart';
 
 final homeProvider = StateNotifierProvider<HomeNotifier, AsyncValue<List<HomeEntity>>>((ref) {
-	final remote = HomeRemoteDatasource(baseUrl: 'http://10.0.2.2:5000'); // Correct for Android emulator
+	final remote = HomeRemoteDatasource(baseUrl: ApiEndpoints.serverUrl);
 	final local = HomeLocalDatasource();
 	final repo = HomeRepositoryImpl(remoteDatasource: remote, localDatasource: local);
 	final usecase = GetHomeProductsUseCase(repo);
