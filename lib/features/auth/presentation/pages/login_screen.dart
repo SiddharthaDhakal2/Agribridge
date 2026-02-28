@@ -1,5 +1,7 @@
 import 'package:agribridge/features/dashboard/presentation/pages/button_navigation.dart';
 import 'package:agribridge/features/dashboard/presentation/state/cart_provider.dart';
+import 'package:agribridge/core/services/security/biometric_auth_service.dart';
+import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,6 +25,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _canUseFingerprintLogin = false;
+  bool _isCheckingFingerprint = true;
+  bool _isFingerprintLoginInProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricLoginAvailability();
+  }
 
   @override
   void dispose() {
@@ -36,6 +47,109 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authViewModelProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text);
+    }
+  }
+
+  Future<void> _loadBiometricLoginAvailability() async {
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final biometricAuthService = ref.read(biometricAuthServiceProvider);
+
+    final isEnabled = userSessionService.isBiometricLoginEnabled();
+    bool canUseFingerprintLogin = false;
+
+    if (isEnabled) {
+      final isSupported = await biometricAuthService.canUseBiometricLogin();
+      final hasCredentials = await userSessionService.hasBiometricCredentials();
+
+      if (!hasCredentials) {
+        await userSessionService.setBiometricLoginEnabled(false);
+      }
+
+      canUseFingerprintLogin = isSupported && hasCredentials;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _canUseFingerprintLogin = canUseFingerprintLogin;
+      _isCheckingFingerprint = false;
+    });
+  }
+
+  Future<void> _handleFingerprintLogin() async {
+    if (_isFingerprintLoginInProgress || _isCheckingFingerprint) {
+      return;
+    }
+
+    if (ref.read(authViewModelProvider).status == AuthStatus.loading) {
+      return;
+    }
+
+    setState(() {
+      _isFingerprintLoginInProgress = true;
+    });
+
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final biometricAuthService = ref.read(biometricAuthServiceProvider);
+
+    try {
+      final isAuthenticated = await biometricAuthService.authenticate(
+        reason: 'Scan your fingerprint to login',
+      );
+
+      if (!isAuthenticated) {
+        return;
+      }
+
+      final credentials = await userSessionService.getBiometricCredentials();
+      if (credentials == null) {
+        await userSessionService.clearBiometricLoginSetup();
+        if (!mounted) return;
+        setState(() {
+          _canUseFingerprintLogin = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Saved fingerprint login is unavailable. Please login manually and enable it again.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      _emailController.text = credentials.email;
+
+      await ref
+          .read(authViewModelProvider.notifier)
+          .login(credentials.email, credentials.password);
+
+      final latestAuthState = ref.read(authViewModelProvider);
+      if (latestAuthState.status == AuthStatus.error) {
+        final message = (latestAuthState.errorMessage ?? '').toLowerCase();
+        if (message.contains('invalid email or password') ||
+            message.contains('user not found')) {
+          await userSessionService.clearBiometricLoginSetup();
+          if (!mounted) return;
+          setState(() {
+            _canUseFingerprintLogin = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Saved fingerprint login expired. Please login manually and enable it again.',
+              ),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFingerprintLoginInProgress = false;
+        });
+      }
     }
   }
 
@@ -241,6 +355,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                         ),
                       ),
+                      if (_canUseFingerprintLogin) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed:
+                                (authState.status == AuthStatus.loading ||
+                                    _isFingerprintLoginInProgress)
+                                ? null
+                                : _handleFingerprintLogin,
+                            icon: _isFingerprintLoginInProgress
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.fingerprint_rounded),
+                            label: const Text(
+                              'Tap to Login with Fingerprint',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF0D5C2D),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
