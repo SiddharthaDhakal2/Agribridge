@@ -282,4 +282,33 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
       );
     }
   }
+
+  @override
+  Future<String> deleteAccount({
+    required String userId,
+    required String currentPassword,
+  }) async {
+    try {
+      final response = await _apiClient.delete(
+        ApiEndpoints.deleteAccountById(userId),
+        data: {'currentPassword': currentPassword},
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        return 'Account deleted successfully';
+      }
+
+      throw Exception('Failed to delete account');
+    } on DioException catch (e) {
+      throw _buildDioExceptionMessage(
+        e,
+        fallbackMessage: 'Failed to delete account',
+      );
+    }
+  }
 }

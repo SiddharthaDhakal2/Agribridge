@@ -12,6 +12,10 @@ abstract interface class IAuthRepository {
     String currentPassword,
     String newPassword,
   );
+  Future<Either<Failure, bool>> deleteAccount(
+    String userId,
+    String currentPassword,
+  );
   Future<Either<Failure, bool>> sendForgotPasswordOtp(String email);
   Future<Either<Failure, bool>> verifyForgotPasswordOtp(
     String email,

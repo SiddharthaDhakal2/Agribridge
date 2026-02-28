@@ -89,6 +89,22 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> deleteAccount(
+    String userId,
+    String currentPassword,
+  ) async {
+    try {
+      await _remoteDatasouce.deleteAccount(
+        userId: userId,
+        currentPassword: currentPassword,
+      );
+      return const Right(true);
+    } on Exception catch (e) {
+      return Left(LocalDatabaseFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, bool>> sendForgotPasswordOtp(String email) async {
     try {
       await _remoteDatasouce.sendForgotPasswordOtp(email: email);

@@ -33,6 +33,10 @@ abstract interface class IAuthRemoteDataSource {
     required String currentPassword,
     required String newPassword,
   });
+  Future<String> deleteAccount({
+    required String userId,
+    required String currentPassword,
+  });
 }
 
 // abstract interface class IAuthLocalDataSource {
