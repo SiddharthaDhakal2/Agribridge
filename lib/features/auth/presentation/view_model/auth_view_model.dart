@@ -1,3 +1,4 @@
+import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:agribridge/features/auth/domain/usecases/delete_account_usecase.dart';
 import 'package:agribridge/features/auth/domain/usecases/reset_forgot_password_usecase.dart';
@@ -24,6 +25,7 @@ final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((
   final resetForgotPasswordUsecase = ref.read(
     resetForgotPasswordUsecaseProvider,
   );
+  final userSessionService = ref.read(userSessionServiceProvider);
   return AuthViewModel(
     loginUsecase: loginUsecase,
     registerUsecase: registerUsecase,
@@ -32,6 +34,7 @@ final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((
     sendForgotPasswordOtpUsecase: sendForgotPasswordOtpUsecase,
     verifyForgotPasswordOtpUsecase: verifyForgotPasswordOtpUsecase,
     resetForgotPasswordUsecase: resetForgotPasswordUsecase,
+    userSessionService: userSessionService,
   );
 });
 
@@ -43,6 +46,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
   final SendForgotPasswordOtpUsecase _sendForgotPasswordOtpUsecase;
   final VerifyForgotPasswordOtpUsecase _verifyForgotPasswordOtpUsecase;
   final ResetForgotPasswordUsecase _resetForgotPasswordUsecase;
+  final UserSessionService _userSessionService;
 
   AuthViewModel({
     required LoginUsecase loginUsecase,
@@ -52,6 +56,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     required SendForgotPasswordOtpUsecase sendForgotPasswordOtpUsecase,
     required VerifyForgotPasswordOtpUsecase verifyForgotPasswordOtpUsecase,
     required ResetForgotPasswordUsecase resetForgotPasswordUsecase,
+    required UserSessionService userSessionService,
   }) : _loginUsecase = loginUsecase,
        _registerUsecase = registerUsecase,
        _changePasswordUsecase = changePasswordUsecase,
@@ -59,6 +64,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
        _sendForgotPasswordOtpUsecase = sendForgotPasswordOtpUsecase,
        _verifyForgotPasswordOtpUsecase = verifyForgotPasswordOtpUsecase,
        _resetForgotPasswordUsecase = resetForgotPasswordUsecase,
+       _userSessionService = userSessionService,
        super(const AuthState());
 
   String _sanitizeErrorMessage(String message) {
@@ -77,19 +83,53 @@ class AuthViewModel extends StateNotifier<AuthState> {
       final params = LoginUsecaseParams(username: email, password: password);
       final result = await _loginUsecase.call(params);
 
+      String? failureMessage;
+      var authenticatedUser = state.authEntity;
+
       result.fold(
         (failure) {
-          state = state.copyWith(
-            status: AuthStatus.error,
-            errorMessage: failure.message,
-          );
+          failureMessage = failure.message;
         },
         (authEntity) {
-          state = state.copyWith(
-            status: AuthStatus.authenticated,
-            authEntity: authEntity,
-          );
+          authenticatedUser = authEntity;
         },
+      );
+
+      if (failureMessage != null) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: failureMessage,
+        );
+        return;
+      }
+
+      final loggedInUserId = _userSessionService.getCurrentUserId();
+      if (loggedInUserId != null && loggedInUserId.trim().isNotEmpty) {
+        await _userSessionService.syncBiometricStateAfterLogin(
+          loggedInUserId: loggedInUserId,
+        );
+      }
+
+      try {
+        await _userSessionService.saveBiometricCredentials(
+          email: email,
+          password: password,
+        );
+      } catch (_) {
+        // Keep login successful even if secure storage write fails.
+      }
+
+      if (authenticatedUser == null) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Unable to complete login. Please try again.',
+        );
+        return;
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        authEntity: authenticatedUser,
       );
     } catch (_) {
       state = state.copyWith(
