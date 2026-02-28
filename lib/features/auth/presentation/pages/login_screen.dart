@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:agribridge/app/routes/app_routes.dart';
+import 'package:agribridge/features/auth/presentation/pages/forgot_password_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
 import 'package:agribridge/features/auth/presentation/pages/register_screen.dart';
 import 'package:agribridge/features/auth/presentation/state/auth_state.dart';
@@ -32,10 +33,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      await ref.read(authViewModelProvider.notifier).login(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
+      await ref
+          .read(authViewModelProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
     }
   }
 
@@ -67,17 +67,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               const SizedBox(height: 120),
-              Image.asset(
-                'assets/images/agri_logo.png',
-                height: 160,
-              ),
+              Image.asset('assets/images/agri_logo.png', height: 160),
               const SizedBox(height: 10),
               Text(
                 "AgriBridge",
-                style: GoogleFonts.poppins(
-                  fontSize: 32,
-                  color: Colors.black,
-                ),
+                style: GoogleFonts.poppins(fontSize: 32, color: Colors.black),
               ),
               const SizedBox(height: 30),
               Row(
@@ -85,7 +79,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      AppRoutes.pushReplacement(context, const RegisterScreen());
+                      AppRoutes.pushReplacement(
+                        context,
+                        const RegisterScreen(),
+                      );
                     },
                     child: const Text(
                       "Sign Up",
@@ -192,7 +189,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // TODO: Implement forgot password
+                            AppRoutes.push(
+                              context,
+                              const ForgotPasswordScreen(),
+                            );
                           },
                           child: const Text(
                             "Forgot Password?",
@@ -204,35 +204,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 15),
-                      ElevatedButton(
-                        onPressed: authState.status == AuthStatus.loading
-                            ? null
-                            : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 14, horizontal: 125),
-                          backgroundColor: Colors.blueAccent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authState.status == AuthStatus.loading
+                              ? null
+                              : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: const Color(0xFF2E8B3C),
+                            disabledBackgroundColor: const Color(0xFF2E8B3C),
+                            foregroundColor: Colors.white,
+                            disabledForegroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            surfaceTintColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
+                          child: authState.status == AuthStatus.loading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  "Log In",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
-                        child: authState.status == AuthStatus.loading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                "Log In",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
                       ),
                       const SizedBox(height: 20),
                       Row(
@@ -260,7 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

@@ -38,7 +38,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Generate username from email (before @)
       final username = _emailController.text.trim().split('@').first;
 
-      await ref.read(authViewModelProvider.notifier).register(
+      await ref
+          .read(authViewModelProvider.notifier)
+          .register(
             fullName: _fullNameController.text.trim(),
             email: _emailController.text.trim(),
             username: username,
@@ -85,10 +87,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             children: [
               const SizedBox(height: 50),
-              Image.asset(
-                'assets/images/agri_logo.png',
-                height: 100,
-              ),
+              Image.asset('assets/images/agri_logo.png', height: 100),
               const SizedBox(height: 10),
               Text(
                 "AgriBridge",
@@ -253,7 +252,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
                               });
                             },
                           ),
@@ -269,35 +269,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                       ),
                       const SizedBox(height: 40),
-                      ElevatedButton(
-                        onPressed: authState.status == AuthStatus.loading
-                            ? null
-                            : _handleSignup,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 14, horizontal: 125),
-                          backgroundColor: Colors.blueAccent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authState.status == AuthStatus.loading
+                              ? null
+                              : _handleSignup,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: const Color(0xFF2E8B3C),
+                            disabledBackgroundColor: const Color(0xFF2E8B3C),
+                            foregroundColor: Colors.white,
+                            disabledForegroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            surfaceTintColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
+                          child: authState.status == AuthStatus.loading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  "Sign Up",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
-                        child: authState.status == AuthStatus.loading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                "Sign Up",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
                       ),
                       const SizedBox(height: 20),
                       Row(
@@ -325,7 +332,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
