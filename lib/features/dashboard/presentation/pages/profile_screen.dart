@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import '../state/profile_provider.dart';
 import '../state/cart_provider.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -22,6 +24,12 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
+  static const double _shakeThreshold = 22.0;
+  static const Duration _shakeCooldown = Duration(milliseconds: 1200);
+
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  DateTime _lastShakeAt = DateTime.fromMillisecondsSinceEpoch(0);
+
   File? _profileImage;
   String? _remoteProfileImageUrl;
 
@@ -44,11 +52,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildAvatarText(String userName, {required Color color}) {
     return Text(
       _initial(userName),
-      style: TextStyle(
-        fontSize: 48,
-        fontWeight: FontWeight.bold,
-        color: color,
-      ),
+      style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: color),
     );
   }
 
@@ -76,13 +80,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             width: 120,
             height: 120,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Center(
-                  child: _buildAvatarText(
-                    userName,
-                    color: avatarInitialColor,
-                  ),
-                ),
+            errorBuilder: (_, __, ___) => Center(
+              child: _buildAvatarText(userName, color: avatarInitialColor),
+            ),
           ),
         ),
       );
@@ -188,7 +188,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _startShakeListener();
     _loadProfileImage();
+  }
+
+  @override
+  void dispose() {
+    _accelerometerSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _startShakeListener() {
+    _accelerometerSubscription = accelerometerEventStream().listen((event) {
+      final combinedAcceleration =
+          event.x.abs() + event.y.abs() + event.z.abs();
+      if (combinedAcceleration < _shakeThreshold) return;
+
+      final now = DateTime.now();
+      if (now.difference(_lastShakeAt) < _shakeCooldown) return;
+
+      _lastShakeAt = now;
+      ref.read(themeModeProvider.notifier).toggleThemeMode();
+    });
   }
 
   Future<void> _loadProfileImage() async {
@@ -319,7 +340,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         : Colors.green;
     final avatarBorderColor = isDarkMode ? Colors.white70 : Colors.white;
     final avatarShadowColor = isDarkMode ? Colors.black54 : Colors.black26;
-    final cameraBadgeBackground = isDarkMode ? colorScheme.surface : Colors.white;
+    final cameraBadgeBackground = isDarkMode
+        ? colorScheme.surface
+        : Colors.white;
     final cameraBadgeBorder = isDarkMode
         ? Colors.greenAccent.shade100
         : Colors.green;
@@ -434,10 +457,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Text(
                       userEmail,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: userEmailColor,
-                      ),
+                      style: TextStyle(fontSize: 14, color: userEmailColor),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -473,12 +493,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         value: isDarkMode,
                         activeThumbColor: Colors.green,
                         activeTrackColor: Colors.green.withValues(alpha: 0.45),
-                        inactiveThumbColor: isDarkMode
-                            ? Colors.white70
-                            : null,
-                        inactiveTrackColor: isDarkMode
-                            ? Colors.white24
-                            : null,
+                        inactiveThumbColor: isDarkMode ? Colors.white70 : null,
+                        inactiveTrackColor: isDarkMode ? Colors.white24 : null,
                         onChanged: (value) {
                           ref
                               .read(themeModeProvider.notifier)
@@ -584,10 +600,12 @@ class _MenuItem extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
-    final resolvedIconColor = iconColor ?? (isDarkMode ? Colors.white : Colors.black);
-    final resolvedTitleColor = titleColor ??
-        (isDarkMode ? Colors.white : Colors.lightGreen);
-    final iconTileTint = iconColor ?? (isDarkMode ? Colors.greenAccent : Colors.lime);
+    final resolvedIconColor =
+        iconColor ?? (isDarkMode ? Colors.white : Colors.black);
+    final resolvedTitleColor =
+        titleColor ?? (isDarkMode ? Colors.white : Colors.lightGreen);
+    final iconTileTint =
+        iconColor ?? (isDarkMode ? Colors.greenAccent : Colors.lime);
     final trailingColor = isDarkMode ? Colors.white70 : Colors.lightGreen;
 
     return Container(
@@ -621,7 +639,9 @@ class _MenuItem extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: iconTileTint.withValues(alpha: isDarkMode ? 0.2 : 0.1),
+                    color: iconTileTint.withValues(
+                      alpha: isDarkMode ? 0.2 : 0.1,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: resolvedIconColor, size: 24),
