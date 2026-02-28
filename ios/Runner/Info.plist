@@ -51,5 +51,7 @@
 	<string>We need access to the microphone for recording audio.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to the photo library to select photos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use biometrics to quickly and securely login to your account.</string>
 </dict>
 </plist>
