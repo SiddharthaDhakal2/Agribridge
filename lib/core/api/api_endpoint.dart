@@ -10,6 +10,12 @@ class ApiEndpoints {
   static const String _physicalServerUrlFromEnv = String.fromEnvironment(
     'API_PHYSICAL_SERVER_URL',
   );
+  // Enable only when you intentionally run `adb reverse tcp:5000 tcp:5000`.
+  static const bool _useAdbReverseForAndroidPhysicalDebug =
+      bool.fromEnvironment(
+        'USE_ADB_REVERSE',
+        defaultValue: false,
+      );
   // Use your LAN/Wi-Fi adapter IP, not virtual adapter IPs (like Hyper-V/vEthernet).
   static const String _defaultPhysicalServerUrl = 'http://192.168.1.11:5000';
 
@@ -90,8 +96,8 @@ class ApiEndpoints {
     try {
       final info = await DeviceInfoPlugin().androidInfo;
       if (info.isPhysicalDevice) {
-        if (kDebugMode) {
-          // Physical Android debug via USB + `adb reverse tcp:5000 tcp:5000`.
+        if (kDebugMode && _useAdbReverseForAndroidPhysicalDebug) {
+          // Physical Android debug via USB when adb reverse is enabled.
           return 'http://127.0.0.1:5000';
         }
         return _physicalServerUrl;
@@ -155,6 +161,7 @@ class ApiEndpoints {
   static const String forgotPasswordResetPassword =
       '/auth/forgot-password/reset-password';
   static String changePasswordById(String id) => '/auth/change-password/$id';
+  static String deleteAccountById(String id) => '/auth/delete-account/$id';
 
   // Order endpoints
   static const String orders = '/orders';
