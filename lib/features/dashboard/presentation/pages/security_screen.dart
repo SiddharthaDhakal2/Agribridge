@@ -1,3 +1,4 @@
+import 'package:agribridge/core/services/security/biometric_auth_service.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
 import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
@@ -14,6 +15,126 @@ class SecurityScreen extends ConsumerStatefulWidget {
 
 class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   bool _isDeletingAccount = false;
+  bool _isBiometricEnabled = false;
+  bool _isBiometricSupported = false;
+  bool _isCheckingBiometricStatus = true;
+  bool _isUpdatingBiometricStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricStatus();
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final biometricAuthService = ref.read(biometricAuthServiceProvider);
+
+    final isEnabled = userSessionService
+        .isBiometricLoginEnabledForCurrentUser();
+    final isSupported = await biometricAuthService.canUseBiometricLogin();
+    final hasCredentials = await userSessionService
+        .hasBiometricCredentialsForCurrentUser();
+
+    if (isEnabled && !hasCredentials) {
+      await userSessionService.setBiometricLoginEnabled(false);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isBiometricEnabled = isEnabled && hasCredentials;
+      _isBiometricSupported = isSupported;
+      _isCheckingBiometricStatus = false;
+    });
+  }
+
+  Future<void> _toggleBiometric(bool shouldEnable) async {
+    if (_isUpdatingBiometricStatus || _isCheckingBiometricStatus) {
+      return;
+    }
+
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final biometricAuthService = ref.read(biometricAuthServiceProvider);
+
+    setState(() {
+      _isUpdatingBiometricStatus = true;
+    });
+
+    try {
+      if (!shouldEnable) {
+        await userSessionService.setBiometricLoginEnabled(false);
+        if (!mounted) return;
+        setState(() {
+          _isBiometricEnabled = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric login has been disabled.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      if (!_isBiometricSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fingerprint is not available on this device.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final hasCredentials = await userSessionService
+          .hasBiometricCredentialsForCurrentUser();
+      if (!hasCredentials) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please login once with email and password before enabling fingerprint login.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final isVerified = await biometricAuthService.authenticate(
+        reason: 'Confirm your fingerprint to enable biometric login',
+      );
+
+      if (!isVerified) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fingerprint verification was not completed.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      await userSessionService.setBiometricLoginEnabled(true);
+      if (!mounted) return;
+      setState(() {
+        _isBiometricEnabled = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric login has been enabled.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingBiometricStatus = false;
+        });
+      }
+    }
+  }
 
   void _showChangePasswordSheet() {
     showModalBottomSheet<void>(
@@ -77,7 +198,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     });
 
     try {
-      await ref.read(userSessionServiceProvider).clearSession();
+      final userSessionService = ref.read(userSessionServiceProvider);
+      await userSessionService.clearBiometricDataForCurrentUser();
+      await userSessionService.clearSession();
       ref.read(cartProvider.notifier).clearInMemory();
       ref.read(authViewModelProvider.notifier).logout();
 
@@ -154,6 +277,40 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               ),
               const SizedBox(height: 14),
               _SecurityActionCard(
+                icon: Icons.fingerprint_rounded,
+                title: 'Enable Biometric Authentication',
+                subtitle: _isCheckingBiometricStatus
+                    ? 'Checking fingerprint availability...'
+                    : (!_isBiometricSupported
+                          ? 'Fingerprint is not available on this device.'
+                          : (_isBiometricEnabled
+                                ? 'Login screen will show Tap to Login with Fingerprint.'
+                                : 'Use fingerprint on the login screen for faster sign in.')),
+                accent: const Color(0xFF1565C0),
+                showArrow: false,
+                trailing: _isCheckingBiometricStatus
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Switch(
+                        value: _isBiometricEnabled,
+                        onChanged:
+                            (!_isBiometricSupported ||
+                                _isUpdatingBiometricStatus)
+                            ? null
+                            : _toggleBiometric,
+                      ),
+                onTap:
+                    (_isCheckingBiometricStatus ||
+                        !_isBiometricSupported ||
+                        _isUpdatingBiometricStatus)
+                    ? () {}
+                    : () => _toggleBiometric(!_isBiometricEnabled),
+              ),
+              const SizedBox(height: 14),
+              _SecurityActionCard(
                 icon: Icons.delete_forever_rounded,
                 title: 'Delete Account',
                 subtitle: _isDeletingAccount
@@ -217,6 +374,8 @@ class _SecurityActionCard extends StatelessWidget {
   final Color accent;
   final bool danger;
   final VoidCallback onTap;
+  final Widget? trailing;
+  final bool showArrow;
 
   const _SecurityActionCard({
     required this.icon,
@@ -225,6 +384,8 @@ class _SecurityActionCard extends StatelessWidget {
     required this.accent,
     required this.onTap,
     this.danger = false,
+    this.trailing,
+    this.showArrow = true,
   });
 
   @override
@@ -303,7 +464,10 @@ class _SecurityActionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: accent),
+              if (trailing != null)
+                trailing!
+              else if (showArrow)
+                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: accent),
             ],
           ),
         ),
