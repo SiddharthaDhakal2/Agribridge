@@ -1,5 +1,6 @@
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class ApiEndpoints {
   ApiEndpoints._();
@@ -12,10 +13,7 @@ class ApiEndpoints {
   );
   // Enable only when you intentionally run `adb reverse tcp:5000 tcp:5000`.
   static const bool _useAdbReverseForAndroidPhysicalDebug =
-      bool.fromEnvironment(
-        'USE_ADB_REVERSE',
-        defaultValue: false,
-      );
+      bool.fromEnvironment('USE_ADB_REVERSE', defaultValue: false);
   // Use your LAN/Wi-Fi adapter IP, not virtual adapter IPs (like Hyper-V/vEthernet).
   static const String _defaultPhysicalServerUrl = 'http://192.168.1.11:5000';
 
@@ -28,6 +26,7 @@ class ApiEndpoints {
 
     if (_baseUrlFromEnv.trim().isNotEmpty) {
       _resolvedServerUrl = _extractServerUrl(_baseUrlFromEnv.trim());
+      await _guardAgainstLoopbackOnPhysicalDevice();
       return;
     }
 
@@ -55,7 +54,14 @@ class ApiEndpoints {
 
   // API base URL (must include /api).
   static String get baseUrl {
+    if (_resolvedServerUrl != null) {
+      return '${_resolvedServerUrl!}/api';
+    }
     if (_baseUrlFromEnv.trim().isNotEmpty) {
+      final extracted = _extractServerUrl(_baseUrlFromEnv.trim());
+      if (extracted != null) {
+        return '$extracted/api';
+      }
       return _normalizeBaseUrl(_baseUrlFromEnv);
     }
     return '$serverUrl/api';
@@ -63,6 +69,9 @@ class ApiEndpoints {
 
   // Backend origin without /api, useful for image/media paths.
   static String get serverUrl {
+    if (_resolvedServerUrl != null) {
+      return _resolvedServerUrl!;
+    }
     if (_baseUrlFromEnv.trim().isNotEmpty) {
       final envServerUrl = _extractServerUrl(_baseUrlFromEnv.trim());
       if (envServerUrl != null) {
@@ -98,7 +107,11 @@ class ApiEndpoints {
       if (info.isPhysicalDevice) {
         if (kDebugMode && _useAdbReverseForAndroidPhysicalDebug) {
           // Physical Android debug via USB when adb reverse is enabled.
-          return 'http://127.0.0.1:5000';
+          const reverseServerUrl = 'http://127.0.0.1:5000';
+          final canReachReverse = await _isServerReachable(reverseServerUrl);
+          if (canReachReverse) {
+            return reverseServerUrl;
+          }
         }
         return _physicalServerUrl;
       }
@@ -128,6 +141,17 @@ class ApiEndpoints {
     return _defaultPhysicalServerUrl;
   }
 
+  static Future<bool> _isServerReachable(String originUrl) async {
+    try {
+      final response = await http
+          .head(Uri.parse(originUrl))
+          .timeout(const Duration(milliseconds: 1200));
+      return response.statusCode >= 100 && response.statusCode < 600;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static String? _extractServerUrl(String rawUrl) {
     final uri = Uri.tryParse(rawUrl.trim());
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
@@ -146,6 +170,57 @@ class ApiEndpoints {
     final trimmed = _normalizeUrl(rawUrl);
     if (trimmed.endsWith('/api')) return trimmed;
     return '$trimmed/api';
+  }
+
+  static bool _isLoopbackHost(String host) {
+    final normalized = host.toLowerCase().trim();
+    return normalized == '127.0.0.1' ||
+        normalized == 'localhost' ||
+        normalized == '::1';
+  }
+
+  static Future<void> _guardAgainstLoopbackOnPhysicalDevice() async {
+    final resolved = _resolvedServerUrl;
+    if (resolved == null || kIsWeb) return;
+
+    final uri = Uri.tryParse(resolved);
+    if (uri == null || !_isLoopbackHost(uri.host)) return;
+
+    bool isPhysicalDevice = false;
+
+    try {
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.android:
+          final info = await DeviceInfoPlugin().androidInfo;
+          isPhysicalDevice = info.isPhysicalDevice;
+          break;
+        case TargetPlatform.iOS:
+          final info = await DeviceInfoPlugin().iosInfo;
+          isPhysicalDevice = info.isPhysicalDevice;
+          break;
+        case TargetPlatform.macOS:
+        case TargetPlatform.windows:
+        case TargetPlatform.linux:
+        case TargetPlatform.fuchsia:
+          isPhysicalDevice = false;
+          break;
+      }
+    } catch (_) {
+      isPhysicalDevice = false;
+    }
+
+    if (!isPhysicalDevice) return;
+
+    final canUseReverse =
+        defaultTargetPlatform == TargetPlatform.android &&
+        kDebugMode &&
+        _useAdbReverseForAndroidPhysicalDebug;
+    if (canUseReverse) {
+      final canReachLoopback = await _isServerReachable(resolved);
+      if (canReachLoopback) return;
+    }
+
+    _resolvedServerUrl = _physicalServerUrl;
   }
 
   static const Duration connectionTimeout = Duration(seconds: 30);
