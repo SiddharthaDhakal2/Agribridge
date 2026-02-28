@@ -1,10 +1,13 @@
 import 'package:agribridge/app/routes/app_routes.dart';
+import 'package:agribridge/core/api/api_endpoint.dart';
+import 'package:agribridge/core/services/hive/hive_service.dart';
 import 'package:agribridge/core/services/storage/user_session_service.dart';
+import 'package:agribridge/features/dashboard/data/models/profile_model.dart';
 import 'package:agribridge/features/dashboard/presentation/pages/button_navigation.dart';
 import 'package:agribridge/features/onboarding/presentation/pages/onboarding_one.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:hive/hive.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -17,22 +20,42 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      // check if user is already logged in
-      final userSessionService = ref.read(userSessionServiceProvider);
-      final isLoggedIn = userSessionService.isLoggedIn();
+    _initializeAndNavigate();
+  }
 
-      if (isLoggedIn) {
-        AppRoutes.pushReplacement(context, const ButtonNavigation());
-      } else {
-        AppRoutes.pushReplacement(context, const OnboardingOne());
+  Future<void> _initializeAndNavigate() async {
+    final startedAt = DateTime.now();
+
+    try {
+      await ApiEndpoints.initialize();
+
+      if (!Hive.isAdapterRegistered(6)) {
+        Hive.registerAdapter(ProfileModelAdapter());
       }
 
-      // Navigator.of(context).pushReplacement(
-      //   MaterialPageRoute(builder: (_) => const OnboardingOne()),
-      // );
-    });
+      final hiveService = HiveService();
+      await hiveService.init();
+    } catch (_) {
+      // Continue with app flow even if startup cache initialization fails.
+    }
+
+    final elapsed = DateTime.now().difference(startedAt);
+    const minSplashDuration = Duration(seconds: 3);
+    final waitDuration = minSplashDuration - elapsed;
+    if (waitDuration > Duration.zero) {
+      await Future.delayed(waitDuration);
+    }
+
+    if (!mounted) return;
+
+    final userSessionService = ref.read(userSessionServiceProvider);
+    final isLoggedIn = userSessionService.isLoggedIn();
+
+    if (isLoggedIn) {
+      AppRoutes.pushReplacement(context, const ButtonNavigation());
+    } else {
+      AppRoutes.pushReplacement(context, const OnboardingOne());
+    }
   }
 
   @override
