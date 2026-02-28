@@ -1,4 +1,5 @@
 import 'package:agribridge/features/auth/domain/usecases/change_password_usecase.dart';
+import 'package:agribridge/features/auth/domain/usecases/delete_account_usecase.dart';
 import 'package:agribridge/features/auth/domain/usecases/reset_forgot_password_usecase.dart';
 import 'package:agribridge/features/auth/domain/usecases/send_forgot_password_otp_usecase.dart';
 import 'package:agribridge/features/auth/domain/usecases/verify_forgot_password_otp_usecase.dart';
@@ -13,6 +14,7 @@ final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((
   final loginUsecase = ref.read(loginUsecaseProvider);
   final registerUsecase = ref.read(registerUsecaseProvider);
   final changePasswordUsecase = ref.read(changePasswordUsecaseProvider);
+  final deleteAccountUsecase = ref.read(deleteAccountUsecaseProvider);
   final sendForgotPasswordOtpUsecase = ref.read(
     sendForgotPasswordOtpUsecaseProvider,
   );
@@ -26,6 +28,7 @@ final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthState>((
     loginUsecase: loginUsecase,
     registerUsecase: registerUsecase,
     changePasswordUsecase: changePasswordUsecase,
+    deleteAccountUsecase: deleteAccountUsecase,
     sendForgotPasswordOtpUsecase: sendForgotPasswordOtpUsecase,
     verifyForgotPasswordOtpUsecase: verifyForgotPasswordOtpUsecase,
     resetForgotPasswordUsecase: resetForgotPasswordUsecase,
@@ -36,6 +39,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
   final LoginUsecase _loginUsecase;
   final RegisterUsecase _registerUsecase;
   final ChangePasswordUsecase _changePasswordUsecase;
+  final DeleteAccountUsecase _deleteAccountUsecase;
   final SendForgotPasswordOtpUsecase _sendForgotPasswordOtpUsecase;
   final VerifyForgotPasswordOtpUsecase _verifyForgotPasswordOtpUsecase;
   final ResetForgotPasswordUsecase _resetForgotPasswordUsecase;
@@ -44,12 +48,14 @@ class AuthViewModel extends StateNotifier<AuthState> {
     required LoginUsecase loginUsecase,
     required RegisterUsecase registerUsecase,
     required ChangePasswordUsecase changePasswordUsecase,
+    required DeleteAccountUsecase deleteAccountUsecase,
     required SendForgotPasswordOtpUsecase sendForgotPasswordOtpUsecase,
     required VerifyForgotPasswordOtpUsecase verifyForgotPasswordOtpUsecase,
     required ResetForgotPasswordUsecase resetForgotPasswordUsecase,
   }) : _loginUsecase = loginUsecase,
        _registerUsecase = registerUsecase,
        _changePasswordUsecase = changePasswordUsecase,
+       _deleteAccountUsecase = deleteAccountUsecase,
        _sendForgotPasswordOtpUsecase = sendForgotPasswordOtpUsecase,
        _verifyForgotPasswordOtpUsecase = verifyForgotPasswordOtpUsecase,
        _resetForgotPasswordUsecase = resetForgotPasswordUsecase,
@@ -160,6 +166,26 @@ class AuthViewModel extends StateNotifier<AuthState> {
       );
 
       final result = await _changePasswordUsecase.call(params);
+      return result.fold(
+        (failure) => _sanitizeErrorMessage(failure.message),
+        (_) => null,
+      );
+    } catch (error) {
+      return _sanitizeErrorMessage(error.toString());
+    }
+  }
+
+  Future<String?> deleteAccount({
+    required String userId,
+    required String currentPassword,
+  }) async {
+    try {
+      final params = DeleteAccountUsecaseParams(
+        userId: userId,
+        currentPassword: currentPassword,
+      );
+
+      final result = await _deleteAccountUsecase.call(params);
       return result.fold(
         (failure) => _sanitizeErrorMessage(failure.message),
         (_) => null,

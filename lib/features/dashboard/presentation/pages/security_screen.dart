@@ -1,16 +1,20 @@
 import 'package:agribridge/core/services/storage/user_session_service.dart';
+import 'package:agribridge/features/auth/presentation/pages/login_screen.dart';
 import 'package:agribridge/features/auth/presentation/view_model/auth_view_model.dart';
+import 'package:agribridge/features/dashboard/presentation/state/cart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SecurityScreen extends StatefulWidget {
+class SecurityScreen extends ConsumerStatefulWidget {
   const SecurityScreen({super.key});
 
   @override
-  State<SecurityScreen> createState() => _SecurityScreenState();
+  ConsumerState<SecurityScreen> createState() => _SecurityScreenState();
 }
 
-class _SecurityScreenState extends State<SecurityScreen> {
+class _SecurityScreenState extends ConsumerState<SecurityScreen> {
+  bool _isDeletingAccount = false;
+
   void _showChangePasswordSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -21,6 +25,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Future<void> _showDeleteAccountFlow() async {
+    if (_isDeletingAccount) {
+      return;
+    }
+
     final shouldContinue = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -60,15 +68,39 @@ class _SecurityScreenState extends State<SecurityScreen> {
       builder: (_) => const _DeleteAccountConfirmDialog(),
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isDeletingAccount = true;
+    });
+
+    try {
+      await ref.read(userSessionServiceProvider).clearSession();
+      ref.read(cartProvider.notifier).clearInMemory();
+      ref.read(authViewModelProvider.notifier).logout();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Delete account is not connected yet. Link this action to your backend.',
-          ),
+        SnackBar(
+          content: Text(error.toString()),
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeletingAccount = false;
+        });
+      }
     }
   }
 
@@ -124,11 +156,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
               _SecurityActionCard(
                 icon: Icons.delete_forever_rounded,
                 title: 'Delete Account',
-                subtitle:
-                    'Permanently remove your account and all associated data.',
+                subtitle: _isDeletingAccount
+                    ? 'Deleting your account...'
+                    : 'Permanently remove your account and all associated data.',
                 accent: const Color(0xFFB3261E),
                 danger: true,
-                onTap: _showDeleteAccountFlow,
+                onTap: _isDeletingAccount ? () {} : _showDeleteAccountFlow,
               ),
               const SizedBox(height: 18),
               Container(
@@ -534,7 +567,9 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
                     width: 46,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: isDarkMode ? Colors.white24 : const Color(0xFFD9E2D9),
+                      color: isDarkMode
+                          ? Colors.white24
+                          : const Color(0xFFD9E2D9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -672,7 +707,9 @@ class _PasswordInput extends StatelessWidget {
           color: isDarkMode ? Colors.white70 : const Color(0xFF5D7062),
         ),
         filled: true,
-        fillColor: isDarkMode ? const Color(0xFF242B28) : const Color(0xFFF3F7F3),
+        fillColor: isDarkMode
+            ? const Color(0xFF242B28)
+            : const Color(0xFFF3F7F3),
         suffixIcon: IconButton(
           onPressed: onToggleVisibility,
           icon: Icon(
@@ -699,28 +736,137 @@ class _PasswordInput extends StatelessWidget {
   }
 }
 
-class _DeleteAccountConfirmDialog extends StatefulWidget {
+class _DeleteAccountConfirmDialog extends ConsumerStatefulWidget {
   const _DeleteAccountConfirmDialog();
 
   @override
-  State<_DeleteAccountConfirmDialog> createState() =>
+  ConsumerState<_DeleteAccountConfirmDialog> createState() =>
       _DeleteAccountConfirmDialogState();
 }
 
 class _DeleteAccountConfirmDialogState
-    extends State<_DeleteAccountConfirmDialog> {
-  final TextEditingController _confirmController = TextEditingController();
+    extends ConsumerState<_DeleteAccountConfirmDialog> {
+  final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isSubmitting = false;
+  bool _hasTriedSubmit = false;
+  String? _passwordServerError;
 
   @override
   void dispose() {
-    _confirmController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value?.trim() ?? '';
+
+    if (password.isEmpty) {
+      return 'Please enter your current password.';
+    }
+
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters.';
+    }
+
+    if (_passwordServerError != null &&
+        _passwordServerError!.trim().isNotEmpty) {
+      return _passwordServerError;
+    }
+
+    return null;
+  }
+
+  void _onPasswordChanged(String _) {
+    if (_passwordServerError != null || _hasTriedSubmit) {
+      setState(() {
+        _passwordServerError = null;
+      });
+    }
+  }
+
+  Future<void> _submitDelete() async {
+    if (!_hasTriedSubmit) {
+      setState(() {
+        _hasTriedSubmit = true;
+      });
+    }
+
+    final validationError = _validatePassword(_passwordController.text);
+    if (validationError != null) {
+      setState(() {});
+      return;
+    }
+
+    final userId = ref.read(userSessionServiceProvider).getCurrentUserId();
+    if (userId == null || userId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User session not found. Please login again.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _passwordServerError = null;
+    });
+
+    try {
+      final errorMessage = await ref
+          .read(authViewModelProvider.notifier)
+          .deleteAccount(
+            userId: userId,
+            currentPassword: _passwordController.text.trim(),
+          );
+
+      if (!mounted) return;
+
+      if (errorMessage != null && errorMessage.trim().isNotEmpty) {
+        var message = errorMessage;
+        if (message.startsWith('Exception: ')) {
+          message = message.substring('Exception: '.length);
+        }
+
+        if (message.toLowerCase().contains('current password')) {
+          setState(() {
+            _passwordServerError = "Current password doesn't match.";
+          });
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+        );
+        return;
+      }
+
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final canDelete = _confirmController.text.trim().toUpperCase() == 'DELETE';
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final passwordError = _hasTriedSubmit
+        ? _validatePassword(_passwordController.text)
+        : null;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -730,20 +876,33 @@ class _DeleteAccountConfirmDialogState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Type DELETE to confirm account deletion.',
+            'Enter your current password to permanently delete your account.',
             style: TextStyle(height: 1.4),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _confirmController,
-            onChanged: (_) => setState(() {}),
-            textCapitalization: TextCapitalization.characters,
+            controller: _passwordController,
+            onChanged: _onPasswordChanged,
+            obscureText: _obscurePassword,
             decoration: InputDecoration(
-              hintText: 'DELETE',
+              labelText: 'Current Password',
+              errorText: passwordError,
               filled: true,
               fillColor: isDarkMode
                   ? const Color(0xFF3A2424)
                   : const Color(0xFFFBEAEA),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                ),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -761,8 +920,17 @@ class _DeleteAccountConfirmDialogState
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFFB3261E),
           ),
-          onPressed: canDelete ? () => Navigator.pop(context, true) : null,
-          child: const Text('Delete'),
+          onPressed: _isSubmitting ? null : _submitDelete,
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text('Delete'),
         ),
       ],
     );
