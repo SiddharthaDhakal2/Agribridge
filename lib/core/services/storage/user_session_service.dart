@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +16,13 @@ final userSessionServiceProvider = Provider<UserSessionService>((ref) {
   return UserSessionService(prefs: prefs);
 });
 
+class BiometricCredentials {
+  final String email;
+  final String password;
+
+  const BiometricCredentials({required this.email, required this.password});
+}
+
 class UserSessionService {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -29,6 +38,11 @@ class UserSessionService {
   static const String _keyUserProfilePicture = 'user_profile_picture';
   static const String _keyToken = 'auth_token';
   static const String _keyUserCartPrefix = 'user_cart_';
+  static const String _keyBiometricEnabled = 'biometric_enabled';
+  static const String _keyBiometricEmail = 'biometric_email';
+  static const String _keyBiometricPassword = 'biometric_password';
+  static const String _keyBiometricEnabledUserId = 'biometric_enabled_user_id';
+  static const String _keyBiometricCredentialsPrefix = 'biometric_credentials_';
 
   UserSessionService({required SharedPreferences prefs}) : _prefs = prefs;
 
@@ -134,6 +148,232 @@ class UserSessionService {
     return await _secureStorage.read(key: _keyToken);
   }
 
+  bool isBiometricLoginEnabled() {
+    return _prefs.getBool(_keyBiometricEnabled) ?? false;
+  }
+
+  bool isBiometricLoginEnabledForCurrentUser() {
+    if (!isBiometricLoginEnabled()) return false;
+
+    final currentUserId = getCurrentUserId()?.trim();
+    final ownerUserId = getBiometricEnabledUserId()?.trim();
+    if (currentUserId == null || currentUserId.isEmpty) return false;
+    if (ownerUserId == null || ownerUserId.isEmpty) return false;
+    return currentUserId == ownerUserId;
+  }
+
+  Future<void> setBiometricLoginEnabled(bool enabled) async {
+    await _prefs.setBool(_keyBiometricEnabled, enabled);
+    if (enabled) {
+      final currentUserId = getCurrentUserId();
+      if (currentUserId != null && currentUserId.trim().isNotEmpty) {
+        await _prefs.setString(_keyBiometricEnabledUserId, currentUserId);
+      }
+      return;
+    }
+
+    final ownerUserId = getBiometricEnabledUserId();
+    if (ownerUserId != null && ownerUserId.trim().isNotEmpty) {
+      await clearBiometricCredentialsForUser(ownerUserId);
+    }
+    await _prefs.remove(_keyBiometricEnabledUserId);
+    await _clearLegacyBiometricCredentials();
+  }
+
+  String? getBiometricEnabledUserId() {
+    return _prefs.getString(_keyBiometricEnabledUserId);
+  }
+
+  Future<void> syncBiometricStateAfterLogin({
+    required String loggedInUserId,
+  }) async {
+    final enabled = isBiometricLoginEnabled();
+    if (!enabled) return;
+
+    final ownerUserId = getBiometricEnabledUserId();
+    final normalizedLoggedInUserId = loggedInUserId.trim();
+    final normalizedOwnerUserId = ownerUserId?.trim() ?? '';
+
+    if (normalizedOwnerUserId.isEmpty) {
+      await _prefs.setString(
+        _keyBiometricEnabledUserId,
+        normalizedLoggedInUserId,
+      );
+    }
+  }
+
+  String _biometricCredentialsKey(String userId) {
+    return '$_keyBiometricCredentialsPrefix${userId.trim()}';
+  }
+
+  Future<void> saveBiometricCredentials({
+    required String email,
+    required String password,
+  }) async {
+    final currentUserId = getCurrentUserId();
+    if (currentUserId == null || currentUserId.trim().isEmpty) {
+      await _saveLegacyBiometricCredentials(email: email, password: password);
+      return;
+    }
+
+    await saveBiometricCredentialsForUser(
+      userId: currentUserId,
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> saveBiometricCredentialsForUser({
+    required String userId,
+    required String email,
+    required String password,
+  }) async {
+    final trimmedUserId = userId.trim();
+    final trimmedEmail = email.trim();
+    if (trimmedUserId.isEmpty || trimmedEmail.isEmpty || password.isEmpty) {
+      return;
+    }
+
+    final payload = jsonEncode({'email': trimmedEmail, 'password': password});
+    await _secureStorage.write(
+      key: _biometricCredentialsKey(trimmedUserId),
+      value: payload,
+    );
+  }
+
+  Future<void> _saveLegacyBiometricCredentials({
+    required String email,
+    required String password,
+  }) async {
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isEmpty || password.isEmpty) return;
+    await _secureStorage.write(key: _keyBiometricEmail, value: trimmedEmail);
+    await _secureStorage.write(key: _keyBiometricPassword, value: password);
+  }
+
+  Future<BiometricCredentials?> getBiometricCredentials() async {
+    if (!isBiometricLoginEnabled()) {
+      return null;
+    }
+
+    final ownerUserId = getBiometricEnabledUserId();
+    if (ownerUserId == null || ownerUserId.trim().isEmpty) {
+      return _getLegacyBiometricCredentials();
+    }
+
+    final credentials = await getBiometricCredentialsForUser(ownerUserId);
+    if (credentials != null) {
+      return credentials;
+    }
+
+    return _getLegacyBiometricCredentials();
+  }
+
+  Future<BiometricCredentials?> getBiometricCredentialsForUser(
+    String userId,
+  ) async {
+    final trimmedUserId = userId.trim();
+    if (trimmedUserId.isEmpty) return null;
+
+    final raw = await _secureStorage.read(
+      key: _biometricCredentialsKey(trimmedUserId),
+    );
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      final email = (decoded['email'] as String?)?.trim() ?? '';
+      final password = decoded['password'] as String?;
+      if (email.isEmpty || password == null || password.isEmpty) {
+        return null;
+      }
+      return BiometricCredentials(email: email, password: password);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<BiometricCredentials?> _getLegacyBiometricCredentials() async {
+    final email = await _secureStorage.read(key: _keyBiometricEmail);
+    final password = await _secureStorage.read(key: _keyBiometricPassword);
+    if (email == null || email.trim().isEmpty || password == null) return null;
+    if (password.isEmpty) return null;
+
+    return BiometricCredentials(email: email.trim(), password: password);
+  }
+
+  Future<bool> hasBiometricCredentials() async {
+    final credentials = await getBiometricCredentials();
+    return credentials != null;
+  }
+
+  Future<bool> hasBiometricCredentialsForCurrentUser() async {
+    final currentUserId = getCurrentUserId();
+    if (currentUserId == null || currentUserId.trim().isEmpty) {
+      return false;
+    }
+
+    final credentials = await getBiometricCredentialsForUser(currentUserId);
+    if (credentials != null) {
+      return true;
+    }
+
+    final ownerUserId = getBiometricEnabledUserId()?.trim();
+    if (ownerUserId == currentUserId.trim()) {
+      final legacyCredentials = await _getLegacyBiometricCredentials();
+      return legacyCredentials != null;
+    }
+
+    return false;
+  }
+
+  Future<void> clearBiometricCredentialsForUser(String userId) async {
+    final trimmedUserId = userId.trim();
+    if (trimmedUserId.isEmpty) return;
+    await _secureStorage.delete(key: _biometricCredentialsKey(trimmedUserId));
+  }
+
+  Future<void> clearBiometricCredentials() async {
+    final ownerUserId = getBiometricEnabledUserId();
+    if (ownerUserId != null && ownerUserId.trim().isNotEmpty) {
+      await clearBiometricCredentialsForUser(ownerUserId);
+    }
+    await _clearLegacyBiometricCredentials();
+  }
+
+  Future<void> _clearLegacyBiometricCredentials() async {
+    await _secureStorage.delete(key: _keyBiometricEmail);
+    await _secureStorage.delete(key: _keyBiometricPassword);
+  }
+
+  Future<void> clearBiometricDataForCurrentUser() async {
+    final currentUserId = getCurrentUserId();
+    if (currentUserId == null || currentUserId.trim().isEmpty) {
+      return;
+    }
+
+    await clearBiometricCredentialsForUser(currentUserId);
+    final ownerUserId = getBiometricEnabledUserId()?.trim();
+    if (ownerUserId == currentUserId.trim()) {
+      await _prefs.remove(_keyBiometricEnabled);
+      await _prefs.remove(_keyBiometricEnabledUserId);
+      await _clearLegacyBiometricCredentials();
+    }
+  }
+
+  Future<void> clearBiometricLoginSetup() async {
+    final ownerUserId = getBiometricEnabledUserId();
+    if (ownerUserId != null && ownerUserId.trim().isNotEmpty) {
+      await clearBiometricCredentialsForUser(ownerUserId);
+    }
+    await _prefs.remove(_keyBiometricEnabled);
+    await _prefs.remove(_keyBiometricEnabledUserId);
+    await _clearLegacyBiometricCredentials();
+  }
+
   // Clear user session (logout)
   Future<void> clearSession() async {
     await _prefs.remove(_keyIsLoggedIn);
@@ -171,6 +411,8 @@ class UserSessionService {
     debugPrint('UserId: ${getCurrentUserId()}');
     debugPrint('Email: ${getCurrentUserEmail()}');
     debugPrint('FullName: ${getCurrentUserFullName()}');
+    debugPrint('BiometricEnabled: ${isBiometricLoginEnabled()}');
+    debugPrint('BiometricOwnerUserId: ${getBiometricEnabledUserId()}');
     //     print('========================');
   }
 }
