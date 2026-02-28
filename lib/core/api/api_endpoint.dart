@@ -149,6 +149,11 @@ class ApiEndpoints {
   static const String customers = '/customers';
   static const String customerLogin = '/auth/login';
   static const String customerRegister = '/auth/register';
+  static const String forgotPasswordSendOtp = '/auth/forgot-password/send-otp';
+  static const String forgotPasswordVerifyOtp =
+      '/auth/forgot-password/verify-otp';
+  static const String forgotPasswordResetPassword =
+      '/auth/forgot-password/reset-password';
   static String changePasswordById(String id) => '/auth/change-password/$id';
 
   // Order endpoints

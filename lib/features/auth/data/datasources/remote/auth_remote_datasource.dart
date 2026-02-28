@@ -52,6 +52,29 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
     return null;
   }
 
+  Exception _buildDioExceptionMessage(
+    DioException e, {
+    required String fallbackMessage,
+  }) {
+    final responseData = e.response?.data;
+    if (responseData is Map<String, dynamic>) {
+      final message = responseData['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return Exception(message);
+      }
+    }
+
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return Exception(
+        'Cannot reach server at ${ApiEndpoints.serverUrl}. Check Wi-Fi and firewall (port 5000).',
+      );
+    }
+
+    return Exception(fallbackMessage);
+  }
+
   @override
   Future<AuthApiModel?> getUserById(String authId) async {
     throw UnimplementedError();
@@ -143,6 +166,94 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
   }
 
   @override
+  Future<String> sendForgotPasswordOtp({required String email}) async {
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.forgotPasswordSendOtp,
+        data: {'email': email},
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        return 'OTP sent to your email';
+      }
+
+      throw Exception('Failed to send OTP');
+    } on DioException catch (e) {
+      throw _buildDioExceptionMessage(e, fallbackMessage: 'Failed to send OTP');
+    }
+  }
+
+  @override
+  Future<String> verifyForgotPasswordOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.forgotPasswordVerifyOtp,
+        data: {'email': email, 'otp': otp},
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        return 'OTP verified successfully';
+      }
+
+      throw Exception('Failed to verify OTP');
+    } on DioException catch (e) {
+      throw _buildDioExceptionMessage(
+        e,
+        fallbackMessage: 'Failed to verify OTP',
+      );
+    }
+  }
+
+  @override
+  Future<String> resetForgotPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.forgotPasswordResetPassword,
+        data: {
+          'email': email,
+          'otp': otp,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final message = data['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        return 'Password reset successfully';
+      }
+
+      throw Exception('Failed to reset password');
+    } on DioException catch (e) {
+      throw _buildDioExceptionMessage(
+        e,
+        fallbackMessage: 'Failed to reset password',
+      );
+    }
+  }
+
+  @override
   Future<String> changePassword({
     required String userId,
     required String currentPassword,
@@ -165,14 +276,10 @@ class AuthRemoteDatasource implements IAuthRemoteDataSource {
 
       throw Exception('Failed to change password');
     } on DioException catch (e) {
-      final responseData = e.response?.data;
-      if (responseData is Map<String, dynamic>) {
-        final message = responseData['message'];
-        if (message is String && message.trim().isNotEmpty) {
-          throw Exception(message);
-        }
-      }
-      throw Exception('Failed to change password');
+      throw _buildDioExceptionMessage(
+        e,
+        fallbackMessage: 'Failed to change password',
+      );
     }
   }
 }

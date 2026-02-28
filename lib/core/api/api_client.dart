@@ -26,23 +26,25 @@ class ApiClient {
   ApiClient({
     required UserSessionService userSessionService,
     this.onUnauthorized,
-  })  : _userSessionService = userSessionService,
-        _dio = Dio(
-          BaseOptions(
-            baseUrl: ApiEndpoints.baseUrl,
-            connectTimeout: ApiEndpoints.connectionTimeout,
-            receiveTimeout: ApiEndpoints.receiveTimeout,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          ),
-        ) {
+  }) : _userSessionService = userSessionService,
+       _dio = Dio(
+         BaseOptions(
+           baseUrl: ApiEndpoints.baseUrl,
+           connectTimeout: ApiEndpoints.connectionTimeout,
+           receiveTimeout: ApiEndpoints.receiveTimeout,
+           headers: {
+             'Content-Type': 'application/json',
+             'Accept': 'application/json',
+           },
+         ),
+       ) {
     // Add Auth Interceptor
-    _dio.interceptors.add(_AuthInterceptor(
-      userSessionService: _userSessionService,
-      onUnauthorized: onUnauthorized,
-    ));
+    _dio.interceptors.add(
+      _AuthInterceptor(
+        userSessionService: _userSessionService,
+        onUnauthorized: onUnauthorized,
+      ),
+    );
 
     // Retry interceptor with exponential backoff
     _dio.interceptors.add(
@@ -89,29 +91,59 @@ class ApiClient {
   Dio get dio => _dio;
 
   // HTTP Methods
-  Future<Response> get(String path,
-          {Map<String, dynamic>? queryParameters, Options? options}) =>
-      _dio.get(path, queryParameters: queryParameters, options: options);
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.get(path, queryParameters: queryParameters, options: options);
 
-  Future<Response> post(String path,
-          {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
-      _dio.post(path, data: data, queryParameters: queryParameters, options: options);
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.post(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
 
-  Future<Response> put(String path,
-          {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
-      _dio.put(path, data: data, queryParameters: queryParameters, options: options);
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.put(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
 
-  Future<Response> delete(String path,
-          {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
-      _dio.delete(path, data: data, queryParameters: queryParameters, options: options);
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) => _dio.delete(
+    path,
+    data: data,
+    queryParameters: queryParameters,
+    options: options,
+  );
 
   Future<Response> uploadFile(
     String path, {
     required FormData formData,
     Options? options,
     ProgressCallback? onSendProgress,
-  }) =>
-      _dio.post(path, data: formData, options: options, onSendProgress: onSendProgress);
+  }) => _dio.post(
+    path,
+    data: formData,
+    options: options,
+    onSendProgress: onSendProgress,
+  );
 }
 
 // Auth Interceptor
@@ -125,17 +157,23 @@ class _AuthInterceptor extends Interceptor {
   }) : _userSessionService = userSessionService;
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    // List of public endpoints (only signup and login are public)
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    // List of public endpoints
     const publicEndpoints = {
       ApiEndpoints.customerLogin,
       ApiEndpoints.customerRegister,
+      ApiEndpoints.forgotPasswordSendOtp,
+      ApiEndpoints.forgotPasswordVerifyOtp,
+      ApiEndpoints.forgotPasswordResetPassword,
     };
 
     // Check if this is a POST to signup or POST to login
-    final isPublic = publicEndpoints.any((endpoint) => 
-      options.path.contains(endpoint) && 
-      (options.method == 'POST')
+    final isPublic = publicEndpoints.any(
+      (endpoint) =>
+          options.path.contains(endpoint) && (options.method == 'POST'),
     );
 
     // Skip adding token only for public endpoints
